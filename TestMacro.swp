@@ -1,0 +1,26 @@
+Sub main()
+    ' 主程序入口點
+    MsgBox "這是主程序 (main)"
+    Call TestSub1
+    Call TestSub2
+End Sub
+
+Sub Main()
+    ' 大寫版本的主程序入口點 
+    MsgBox "這是大寫主程序 (Main)"
+End Sub
+
+Sub TestSub1()
+    ' 測試子程序 1
+    MsgBox "執行 TestSub1 成功！"
+End Sub
+
+Sub TestSub2()
+    ' 測試子程序 2
+    MsgBox "執行 TestSub2 成功！"
+End Sub
+
+Sub macro()
+    ' 另一個常見的入口點名稱
+    MsgBox "這是 macro 入口點"
+End Sub

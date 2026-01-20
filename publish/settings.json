@@ -1,0 +1,24 @@
+{
+  "MacroPaths": [
+    "C:\\Users\\Chris\\Desktop\\MiniSw\\publish\\My SW Macros",
+    "D:\\codebase\\MecAgent Folder\\MecAgent-GPT-B\\MiniSw\\publish\\My SW Macros"
+  ],
+  "Prompts": [
+    {
+      "Id": "bc057650-6c54-4863-ad13-7c97bfd56646",
+      "Name": "C# SolidWorks \u5B8F\u751F\u6210",
+      "Content": "\u8ACB\u5E6B\u6211\u751F\u6210 SolidWorks C# \u5B8F\u4EE3\u78BC\u3002\r\n\r\n\u8981\u6C42\uFF1A\r\n1. \u4F7F\u7528 SolidWorks.Interop.sldworks \u548C SolidWorks.Interop.swconst \u547D\u540D\u7A7A\u9593\r\n2. \u5047\u8A2D swApp (ISldWorks) \u548C swModel (IModelDoc2) \u5DF2\u7D93\u53EF\u7528\r\n3. \u4F7F\u7528 Print(), PrintError(), PrintWarning() \u8F38\u51FA\u4FE1\u606F\r\n4. \u6DFB\u52A0\u9069\u7576\u7684\u932F\u8AA4\u8655\u7406\r\n5. \u6DFB\u52A0\u4E2D\u6587\u8A3B\u91CB\u8AAA\u660E\u4EE3\u78BC\u529F\u80FD\r\n\r\n\u529F\u80FD\u9700\u6C42\uFF1A\r\n[\u5728\u6B64\u63CF\u8FF0\u4F60\u9700\u8981\u7684\u529F\u80FD]",
+      "IsDefault": true
+    },
+    {
+      "Id": "eb58b0d3-9501-481b-a735-6186432de6c0",
+      "Name": "VBA SolidWorks \u5B8F\u751F\u6210",
+      "Content": "\u8ACB\u5E6B\u6211\u751F\u6210 SolidWorks VBA \u5B8F\u4EE3\u78BC\u3002\r\n\r\n\u8981\u6C42\uFF1A\r\n1. \u4F7F\u7528\u6A19\u6E96 VBA \u8A9E\u6CD5\r\n2. \u5305\u542B Sub main() \u4F5C\u70BA\u5165\u53E3\u9EDE\r\n3. \u4F7F\u7528 Dim swApp As SldWorks.SldWorks \u7372\u53D6\u61C9\u7528\u7A0B\u5E8F\r\n4. \u6DFB\u52A0\u9069\u7576\u7684\u932F\u8AA4\u8655\u7406 (On Error GoTo)\r\n5. \u6DFB\u52A0\u4E2D\u6587\u8A3B\u91CB\u8AAA\u660E\u4EE3\u78BC\u529F\u80FD\r\n\r\n\u529F\u80FD\u9700\u6C42\uFF1A\r\n[\u5728\u6B64\u63CF\u8FF0\u4F60\u9700\u8981\u7684\u529F\u80FD]",
+      "IsDefault": true
+    }
+  ],
+  "Notes": [],
+  "LastOpenedFile": "",
+  "WindowWidth": 1400,
+  "WindowHeight": 850
+}
