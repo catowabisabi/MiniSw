@@ -1,7 +1,6 @@
 {
   "MacroPaths": [
     "C:\\Users\\Chris\\Desktop\\MiniSw\\bin\\Debug\\net8.0-windows\\My SW Macros",
-    "D:\\codebase\\MecAgent Folder\\MecAgent-GPT-B\\MiniSw\\bin\\Debug\\net8.0-windows\\My SW Macros",
     "E:\\this-macros\\SW Macro\\CS",
     "E:\\this-macros\\SW Macro\\SWP"
   ],
@@ -40,45 +39,69 @@
   "Notes": [],
   "RecentFiles": [
     {
-      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\\u53EF\u7528\\01_create_a_new_part.bas",
-      "Name": "01_create_a_new_part",
-      "LastOpened": "2026-01-20T02:35:10.9607165-05:00",
-      "Type": 1
-    },
-    {
       "FilePath": "E:\\this-macros\\SW Macro\\SWP\\\u53EF\u7528\\01_create_a_new_part.swp",
       "Name": "01_create_a_new_part",
-      "LastOpened": "2026-01-20T02:33:28.2273211-05:00",
+      "LastOpened": "2026-01-20T03:18:51.8284372-05:00",
       "Type": 1
     },
     {
-      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\e.bas",
-      "Name": "e",
-      "LastOpened": "2026-01-20T02:31:53.0795584-05:00",
+      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\\u53EF\u7528\\01_create_a_new_part.bas",
+      "Name": "01_create_a_new_part",
+      "LastOpened": "2026-01-20T03:16:06.2258837-05:00",
       "Type": 1
     },
     {
-      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\dwg 09 save flat size o dwg.bas",
-      "Name": "dwg 09 save flat size o dwg",
-      "LastOpened": "2026-01-20T02:31:34.2166071-05:00",
-      "Type": 1
-    },
-    {
-      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\dwg 09 save flat size o dwg.swp",
-      "Name": "dwg 09 save flat size o dwg",
-      "LastOpened": "2026-01-20T02:31:04.1122336-05:00",
-      "Type": 1
-    },
-    {
-      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\e.swp",
-      "Name": "e",
-      "LastOpened": "2026-01-20T02:30:53.2832598-05:00",
+      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\\u53EF\u7528\\02 create a new assembly2.bas",
+      "Name": "02 create a new assembly2",
+      "LastOpened": "2026-01-20T03:09:10.386428-05:00",
       "Type": 1
     },
     {
       "FilePath": "E:\\this-macros\\SW Macro\\SWP\\\u53EF\u7528\\03 create a new drawing.swp",
       "Name": "03 create a new drawing",
-      "LastOpened": "2026-01-20T02:22:42.9815622-05:00",
+      "LastOpened": "2026-01-20T03:08:52.3763479-05:00",
+      "Type": 1
+    },
+    {
+      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\\u53EF\u7528\\02 create a new assembly.swp",
+      "Name": "02 create a new assembly",
+      "LastOpened": "2026-01-20T03:08:50.0729825-05:00",
+      "Type": 1
+    },
+    {
+      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\\u53EF\u7528\\03 create a new drawing2.bas",
+      "Name": "03 create a new drawing2",
+      "LastOpened": "2026-01-20T02:58:57.0190545-05:00",
+      "Type": 1
+    },
+    {
+      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\e.swp",
+      "Name": "e",
+      "LastOpened": "2026-01-20T02:56:44.9092582-05:00",
+      "Type": 1
+    },
+    {
+      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\e.bas",
+      "Name": "e",
+      "LastOpened": "2026-01-20T02:56:42.3744681-05:00",
+      "Type": 1
+    },
+    {
+      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\dwg 09 save flat size o dwg.bas",
+      "Name": "dwg 09 save flat size o dwg",
+      "LastOpened": "2026-01-20T02:56:37.2685778-05:00",
+      "Type": 1
+    },
+    {
+      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\dwg 09 save flat size o dwg.swp",
+      "Name": "dwg 09 save flat size o dwg",
+      "LastOpened": "2026-01-20T02:56:34.647333-05:00",
+      "Type": 1
+    },
+    {
+      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\\u53EF\u7528\\02 create a new assembly.bas",
+      "Name": "02 create a new assembly",
+      "LastOpened": "2026-01-20T02:52:54.787164-05:00",
       "Type": 1
     }
   ],
@@ -86,94 +109,163 @@
     {
       "FileName": "01_create_a_new_part",
       "FilePath": "E:\\this-macros\\SW Macro\\SWP\\\u53EF\u7528\\01_create_a_new_part.swp",
-      "ExecutionTime": "2026-01-20T02:34:53.8181693-05:00",
-      "Language": "C#",
-      "Success": false,
-      "DurationMs": 0,
-      "ErrorMessage": "",
-      "UsedModuleName": "",
-      "UsedProcedureName": "",
-      "ExecutedAt": "2026-01-20T02:34:53.8181693-05:00"
-    },
-    {
-      "FileName": "01_create_a_new_part",
-      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\\u53EF\u7528\\01_create_a_new_part.swp",
-      "ExecutionTime": "2026-01-20T02:33:38.0845542-05:00",
-      "Language": "C#",
-      "Success": false,
-      "DurationMs": 0,
-      "ErrorMessage": "\u627E\u4E0D\u5230\u6307\u5B9A\u7684\u6A21\u584A\u6216\u7A0B\u5E8F / Module or procedure not found",
-      "UsedModuleName": "",
-      "UsedProcedureName": "",
-      "ExecutedAt": "2026-01-20T02:33:38.0845542-05:00"
-    },
-    {
-      "FileName": "dwg 09 save flat size o dwg",
-      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\dwg 09 save flat size o dwg.swp",
-      "ExecutionTime": "2026-01-20T02:33:16.1397686-05:00",
-      "Language": "C#",
-      "Success": false,
-      "DurationMs": 0,
-      "ErrorMessage": "\u627E\u4E0D\u5230\u6307\u5B9A\u7684\u6A21\u584A\u6216\u7A0B\u5E8F / Module or procedure not found",
-      "UsedModuleName": "",
-      "UsedProcedureName": "",
-      "ExecutedAt": "2026-01-20T02:33:16.1397686-05:00"
-    },
-    {
-      "FileName": "dwg 09 save flat size o dwg",
-      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\dwg 09 save flat size o dwg.swp",
-      "ExecutionTime": "2026-01-20T02:32:37.537239-05:00",
-      "Language": "C#",
-      "Success": false,
-      "DurationMs": 0,
-      "ErrorMessage": "\u627E\u4E0D\u5230\u6307\u5B9A\u7684\u6A21\u584A\u6216\u7A0B\u5E8F / Module or procedure not found",
-      "UsedModuleName": "",
-      "UsedProcedureName": "",
-      "ExecutedAt": "2026-01-20T02:32:37.537239-05:00"
-    },
-    {
-      "FileName": "dwg 09 save flat size o dwg",
-      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\dwg 09 save flat size o dwg.bas",
-      "ExecutionTime": "2026-01-20T02:32:29.4166657-05:00",
+      "ExecutionTime": "2026-01-20T03:19:00.6089977-05:00",
       "Language": "C#",
       "Success": false,
       "DurationMs": 0,
       "ErrorMessage": "VBA \u932F\u8AA4\u4EE3\u78BC 0",
       "UsedModuleName": "",
       "UsedProcedureName": "",
-      "ExecutedAt": "2026-01-20T02:32:29.4166657-05:00"
+      "ExecutedAt": "2026-01-20T03:19:00.6089977-05:00"
     },
     {
-      "FileName": "e",
-      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\e.bas",
-      "ExecutionTime": "2026-01-20T02:32:05.2965184-05:00",
+      "FileName": "01_create_a_new_part",
+      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\\u53EF\u7528\\01_create_a_new_part.bas",
+      "ExecutionTime": "2026-01-20T03:18:45.5862495-05:00",
+      "Language": "C#",
+      "Success": false,
+      "DurationMs": 0,
+      "ErrorMessage": "VBA \u932F\u8AA4\u4EE3\u78BC 0",
+      "UsedModuleName": "",
+      "UsedProcedureName": "",
+      "ExecutedAt": "2026-01-20T03:18:45.5862495-05:00"
+    },
+    {
+      "FileName": "03 create a new drawing",
+      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\\u53EF\u7528\\03 create a new drawing.swp",
+      "ExecutionTime": "2026-01-20T03:09:41.40062-05:00",
       "Language": "C#",
       "Success": false,
       "DurationMs": 0,
       "ErrorMessage": "",
       "UsedModuleName": "",
       "UsedProcedureName": "",
-      "ExecutedAt": "2026-01-20T02:32:05.2965184-05:00"
+      "ExecutedAt": "2026-01-20T03:09:41.40062-05:00"
     },
     {
-      "FileName": "dwg 09 save flat size o dwg",
-      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\dwg 09 save flat size o dwg.bas",
-      "ExecutionTime": "2026-01-20T02:31:50.248452-05:00",
+      "FileName": "01_create_a_new_part",
+      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\\u53EF\u7528\\01_create_a_new_part.swp",
+      "ExecutionTime": "2026-01-20T03:08:48.7083443-05:00",
       "Language": "C#",
       "Success": false,
       "DurationMs": 0,
       "ErrorMessage": "",
       "UsedModuleName": "",
       "UsedProcedureName": "",
-      "ExecutedAt": "2026-01-20T02:31:50.248452-05:00"
+      "ExecutedAt": "2026-01-20T03:08:48.7083443-05:00"
+    },
+    {
+      "FileName": "01_create_a_new_part",
+      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\\u53EF\u7528\\01_create_a_new_part.swp",
+      "ExecutionTime": "2026-01-20T03:08:36.9410098-05:00",
+      "Language": "C#",
+      "Success": false,
+      "DurationMs": 0,
+      "ErrorMessage": "VBA \u932F\u8AA4\u4EE3\u78BC 0",
+      "UsedModuleName": "",
+      "UsedProcedureName": "",
+      "ExecutedAt": "2026-01-20T03:08:36.9410098-05:00"
+    },
+    {
+      "FileName": "01_create_a_new_part",
+      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\\u53EF\u7528\\01_create_a_new_part.swp",
+      "ExecutionTime": "2026-01-20T03:07:50.2438227-05:00",
+      "Language": "C#",
+      "Success": true,
+      "DurationMs": 0,
+      "ErrorMessage": "",
+      "UsedModuleName": "",
+      "UsedProcedureName": "",
+      "ExecutedAt": "2026-01-20T03:07:50.2438227-05:00"
+    },
+    {
+      "FileName": "01_create_a_new_part",
+      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\\u53EF\u7528\\01_create_a_new_part.swp",
+      "ExecutionTime": "2026-01-20T03:03:54.2044904-05:00",
+      "Language": "C#",
+      "Success": false,
+      "DurationMs": 0,
+      "ErrorMessage": "\u627E\u4E0D\u5230\u6307\u5B9A\u7684\u6A21\u584A\u6216\u7A0B\u5E8F / Module or procedure not found",
+      "UsedModuleName": "",
+      "UsedProcedureName": "",
+      "ExecutedAt": "2026-01-20T03:03:54.2044904-05:00"
+    },
+    {
+      "FileName": "01_create_a_new_part",
+      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\\u53EF\u7528\\01_create_a_new_part.swp",
+      "ExecutionTime": "2026-01-20T03:02:56.7812994-05:00",
+      "Language": "C#",
+      "Success": false,
+      "DurationMs": 0,
+      "ErrorMessage": "",
+      "UsedModuleName": "",
+      "UsedProcedureName": "",
+      "ExecutedAt": "2026-01-20T03:02:56.7812994-05:00"
+    },
+    {
+      "FileName": "01_create_a_new_part",
+      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\\u53EF\u7528\\01_create_a_new_part.swp",
+      "ExecutionTime": "2026-01-20T03:02:28.4920779-05:00",
+      "Language": "C#",
+      "Success": false,
+      "DurationMs": 0,
+      "ErrorMessage": "\u627E\u4E0D\u5230\u6307\u5B9A\u7684\u6A21\u584A\u6216\u7A0B\u5E8F / Module or procedure not found",
+      "UsedModuleName": "",
+      "UsedProcedureName": "",
+      "ExecutedAt": "2026-01-20T03:02:28.4920779-05:00"
+    },
+    {
+      "FileName": "01_create_a_new_part",
+      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\\u53EF\u7528\\01_create_a_new_part.swp",
+      "ExecutionTime": "2026-01-20T02:58:48.0564604-05:00",
+      "Language": "C#",
+      "Success": false,
+      "DurationMs": 0,
+      "ErrorMessage": "",
+      "UsedModuleName": "",
+      "UsedProcedureName": "",
+      "ExecutedAt": "2026-01-20T02:58:48.0564604-05:00"
+    },
+    {
+      "FileName": "02 create a new assembly",
+      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\\u53EF\u7528\\02 create a new assembly.bas",
+      "ExecutionTime": "2026-01-20T02:42:06.4981512-05:00",
+      "Language": "C#",
+      "Success": false,
+      "DurationMs": 0,
+      "ErrorMessage": "",
+      "UsedModuleName": "",
+      "UsedProcedureName": "",
+      "ExecutedAt": "2026-01-20T02:42:06.4981512-05:00"
+    },
+    {
+      "FileName": "01_create_a_new_part",
+      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\\u53EF\u7528\\01_create_a_new_part.swp",
+      "ExecutionTime": "2026-01-20T02:40:47.7620225-05:00",
+      "Language": "C#",
+      "Success": false,
+      "DurationMs": 0,
+      "ErrorMessage": "VBA \u932F\u8AA4\u4EE3\u78BC 0",
+      "UsedModuleName": "",
+      "UsedProcedureName": "",
+      "ExecutedAt": "2026-01-20T02:40:47.7620225-05:00"
+    }
+  ],
+  "RecentEntryPoints": [
+    {
+      "ModuleName": "Module1",
+      "ProcedureName": "createNewPart",
+      "LastUsed": "2026-01-20T03:18:57.1419111-05:00",
+      "FilePath": "E:\\this-macros\\SW Macro\\SWP\\\u53EF\u7528\\01_create_a_new_part.swp"
     }
   ],
   "LastOpenedFile": "",
-  "WindowWidth": 1526,
-  "WindowHeight": 992,
+  "WindowWidth": 1936,
+  "WindowHeight": 1048,
   "Language": "en-US",
   "AutoSaveEnabled": true,
   "AutoSaveIntervalSeconds": 60,
   "MaxRecentFiles": 15,
-  "MaxExecutionHistory": 50
+  "MaxExecutionHistory": 50,
+  "MaxRecentEntryPoints": 20
 }

@@ -1156,7 +1156,7 @@ namespace MiniSolidworkAutomator
                 AppendToTerminal("ℹ️ 注意: SWP 是二進制格式，無法直接獲取方法列表", Color.Orange);
                 
                 // Try alternative approach - create basic template
-                return TryExtractByRunningMacro(swpPath, basPath);
+                return TryExtractByAnalysis(swpPath, basPath);
             }
             catch (Exception ex)
             {
@@ -1165,86 +1165,343 @@ namespace MiniSolidworkAutomator
             }
         }
 
-        private bool TryExtractByRunningMacro(string swpPath, string basPath)
+        private bool TryExtractByAnalysis(string swpPath, string basPath)
         {
             try
             {
-                AppendToTerminal("🔄 嘗試通過運行宏來分析結構", Color.Cyan);
+                AppendToTerminal("🔄 嘗試通過文件分析提取內容", Color.Cyan);
                 
-                // Create a simple template based on common VBA structure
+                // Try to detect SUB procedures from the file
+                var detectedSubs = DetectSubProceduresInSwp(swpPath);
+                
+                // Create a BAS file with detected content
                 var basContent = new System.Text.StringBuilder();
-                basContent.AppendLine("' Converted from SWP file: " + Path.GetFileName(swpPath));
-                basContent.AppendLine("' Conversion date: " + DateTime.Now.ToString());
+                basContent.AppendLine($"' Extracted from SWP file: {Path.GetFileName(swpPath)}");
+                basContent.AppendLine($"' Extraction date: {DateTime.Now}");
                 basContent.AppendLine();
                 basContent.AppendLine("Option Explicit");
                 basContent.AppendLine();
-                basContent.AppendLine("Sub main()");
-                basContent.AppendLine("    ' TODO: Extract original macro content");
-                basContent.AppendLine("    ' Original file: " + swpPath);
-                basContent.AppendLine("    MsgBox \"This macro was converted from SWP format\"");
-                basContent.AppendLine("End Sub");
+                
+                if (detectedSubs.Count > 0)
+                {
+                    basContent.AppendLine("' Detected SUB procedures:");
+                    foreach (var sub in detectedSubs)
+                    {
+                        basContent.AppendLine($"' - {sub}");
+                    }
+                    basContent.AppendLine();
+                    
+                    // Create stub implementations
+                    foreach (var sub in detectedSubs)
+                    {
+                        basContent.AppendLine($"Sub {sub}()");
+                        basContent.AppendLine($"    ' TODO: Implement {sub} logic");
+                        basContent.AppendLine($"    ' Original implementation was in: {Path.GetFileName(swpPath)}");
+                        basContent.AppendLine("    ");
+                        basContent.AppendLine("    Dim swApp As SldWorks.SldWorks");
+                        basContent.AppendLine("    Set swApp = Application.SldWorks");
+                        basContent.AppendLine("    ");
+                        basContent.AppendLine("    If swApp Is Nothing Then");
+                        basContent.AppendLine("        MsgBox \"Cannot connect to SolidWorks\"");
+                        basContent.AppendLine("        Exit Sub");
+                        basContent.AppendLine("    End If");
+                        basContent.AppendLine("    ");
+                        basContent.AppendLine($"    MsgBox \"{sub} procedure needs manual implementation\"");
+                        basContent.AppendLine("    ");
+                        basContent.AppendLine("End Sub");
+                        basContent.AppendLine();
+                    }
+                }
+                else
+                {
+                    // Fallback to main procedure
+                    basContent.AppendLine("Sub main()");
+                    basContent.AppendLine("    ' TODO: Implement main logic");
+                    basContent.AppendLine($"    ' Original file: {swpPath}");
+                    basContent.AppendLine("    ");
+                    basContent.AppendLine("    Dim swApp As SldWorks.SldWorks");
+                    basContent.AppendLine("    Set swApp = Application.SldWorks");
+                    basContent.AppendLine("    ");
+                    basContent.AppendLine("    If swApp Is Nothing Then");
+                    basContent.AppendLine("        MsgBox \"Cannot connect to SolidWorks\"");
+                    basContent.AppendLine("        Exit Sub");
+                    basContent.AppendLine("    End If");
+                    basContent.AppendLine("    ");
+                    basContent.AppendLine("    MsgBox \"Macro converted from SWP - manual editing required\"");
+                    basContent.AppendLine("    ");
+                    basContent.AppendLine("End Sub");
+                }
+                
                 basContent.AppendLine();
-                basContent.AppendLine("' Note: Manual editing may be required to restore full functionality");
+                basContent.AppendLine("' Note: This file was auto-generated from SWP format.");
+                basContent.AppendLine("' Manual editing is required to restore full functionality.");
                 
                 File.WriteAllText(basPath, basContent.ToString());
-                AppendToTerminal("📄 創建了基本 BAS 模板文件", Color.Yellow);
+                
+                if (detectedSubs.Count > 0)
+                {
+                    AppendToTerminal($"📄 創建了包含 {detectedSubs.Count} 個 SUB 程序的 BAS 文件", Color.Yellow);
+                }
+                else
+                {
+                    AppendToTerminal("📄 創建了基本 BAS 模板文件", Color.Yellow);
+                }
+                
                 AppendToTerminal("⚠ 注意: 需要手動編輯以恢復完整功能", Color.Orange);
                 return true;
             }
             catch (Exception ex)
             {
-                AppendToTerminal($"❌ 模板創建失敗: {ex.Message}", Color.Red);
+                AppendToTerminal($"❌ 分析失敗: {ex.Message}", Color.Red);
                 return false;
             }
         }
 
-        private bool ExtractSourceCodeFromMacro(string swpPath, string basPath, string[] modules)
+        private List<string> DetectSubProceduresInSwp(string swpPath)
         {
+            var detectedSubs = new List<string>();
+            
             try
             {
-                AppendToTerminal("📝 嘗試提取源代碼", Color.Cyan);
+                AppendToTerminal("🔍 檢測 SWP 文件中的 SUB 程序", Color.Cyan);
                 
-                // This is a simplified approach - in reality, extracting from .swp requires
-                // more complex OLE Structured Storage parsing
-                var basContent = new System.Text.StringBuilder();
-                basContent.AppendLine("' Extracted from SWP file: " + Path.GetFileName(swpPath));
-                basContent.AppendLine("' Extraction date: " + DateTime.Now.ToString());
-                basContent.AppendLine();
-                basContent.AppendLine("Option Explicit");
-                basContent.AppendLine();
+                // Read file as binary
+                byte[] fileBytes = File.ReadAllBytes(swpPath);
+                AppendToTerminal($"  • 文件大小: {fileBytes.Length} bytes", Color.Gray);
                 
-                // Add detected modules as comments
-                if (modules.Length > 0)
+                // Try multiple encodings to find VBA content
+                string[] encodingsToTry = { "UTF-8", "ASCII", "Unicode", "UTF-16LE", "UTF-16BE" };
+                
+                foreach (string encodingName in encodingsToTry)
                 {
-                    basContent.AppendLine("' Detected modules:");
-                    foreach (var module in modules)
+                    try
                     {
-                        basContent.AppendLine($"' - {module}");
+                        var encoding = System.Text.Encoding.GetEncoding(encodingName);
+                        string content = encoding.GetString(fileBytes);
+                        
+                        // Search for SUB patterns in this encoding
+                        var foundSubs = FindSubsInContent(content);
+                        foreach (var sub in foundSubs)
+                        {
+                            if (!detectedSubs.Contains(sub))
+                            {
+                                detectedSubs.Add(sub);
+                                AppendToTerminal($"  • 找到 SUB: {sub} (編碼: {encodingName})", Color.Gray);
+                            }
+                        }
                     }
-                    basContent.AppendLine();
+                    catch { /* Encoding not supported, skip */ }
                 }
                 
-                // Add main procedure
-                basContent.AppendLine("Sub main()");
-                basContent.AppendLine("    ' Original SWP macro content would be here");
-                basContent.AppendLine("    ' File: " + swpPath);
-                foreach (var module in modules)
+                // Also try to search for "Sub " pattern directly in bytes
+                if (detectedSubs.Count == 0)
                 {
-                    basContent.AppendLine($"    ' Module: {module}");
+                    var binarySubs = FindSubsInBytes(fileBytes);
+                    foreach (var sub in binarySubs)
+                    {
+                        if (!detectedSubs.Contains(sub))
+                        {
+                            detectedSubs.Add(sub);
+                            AppendToTerminal($"  • 找到 SUB: {sub} (二進制掃描)", Color.Gray);
+                        }
+                    }
                 }
-                basContent.AppendLine("    MsgBox \"SWP macro converted to BAS format\"");
-                basContent.AppendLine("End Sub");
                 
-                File.WriteAllText(basPath, basContent.ToString());
-                return true;
+                // If still no SUBs found, try common name heuristics
+                if (detectedSubs.Count == 0)
+                {
+                    AppendToTerminal("  • 未找到明確的 SUB 定義，嘗試常見名稱", Color.Orange);
+                    detectedSubs = TryCommonSubNames(fileBytes);
+                }
+                
+                // Remove invalid entries
+                detectedSubs = detectedSubs.Where(s => 
+                    !string.IsNullOrWhiteSpace(s) && 
+                    s.Length >= 1 && 
+                    s.Length < 50 && 
+                    !s.Contains("\0") &&
+                    char.IsLetter(s[0]) &&
+                    s.All(c => char.IsLetterOrDigit(c) || c == '_')
+                ).Distinct().ToList();
+                
+                if (detectedSubs.Count > 0)
+                {
+                    AppendToTerminal($"✅ 總共找到 {detectedSubs.Count} 個 SUB 程序", Color.LightGreen);
+                }
+                else
+                {
+                    AppendToTerminal("⚠ 未找到任何 SUB 程序", Color.Orange);
+                }
+                
+                return detectedSubs;
             }
             catch (Exception ex)
             {
-                AppendToTerminal($"❌ 源代碼提取失敗: {ex.Message}", Color.Red);
-                return false;
+                AppendToTerminal($"❌ SUB 檢測失敗: {ex.Message}", Color.Red);
+                return new List<string>();
             }
         }
-
+        
+        private List<string> FindSubsInContent(string content)
+        {
+            var subs = new List<string>();
+            
+            // Split by multiple delimiters
+            var lines = content.Split(new char[] { '\0', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+            
+            foreach (string line in lines)
+            {
+                string cleanLine = line.Trim();
+                
+                // Look for "Sub " at the beginning (case insensitive)
+                int subIndex = cleanLine.IndexOf("Sub ", StringComparison.OrdinalIgnoreCase);
+                if (subIndex == 0 || (subIndex > 0 && !char.IsLetter(cleanLine[subIndex - 1])))
+                {
+                    string afterSub = cleanLine.Substring(subIndex + 4).Trim();
+                    string subName = ExtractSubNameFromString(afterSub);
+                    
+                    if (!string.IsNullOrEmpty(subName) && !subs.Contains(subName))
+                    {
+                        subs.Add(subName);
+                    }
+                }
+            }
+            
+            return subs;
+        }
+        
+        private List<string> FindSubsInBytes(byte[] fileBytes)
+        {
+            var subs = new List<string>();
+            
+            // Look for "Sub " pattern in various encodings
+            byte[][] subPatterns = {
+                System.Text.Encoding.ASCII.GetBytes("Sub "),
+                System.Text.Encoding.UTF8.GetBytes("Sub "),
+                new byte[] { 0x53, 0x00, 0x75, 0x00, 0x62, 0x00, 0x20, 0x00 }, // UTF-16LE "Sub "
+            };
+            
+            foreach (var pattern in subPatterns)
+            {
+                int index = 0;
+                while ((index = FindPattern(fileBytes, pattern, index)) >= 0)
+                {
+                    // Extract the SUB name after the pattern
+                    string subName = ExtractSubNameFromPosition(fileBytes, index + pattern.Length);
+                    if (!string.IsNullOrEmpty(subName) && !subs.Contains(subName))
+                    {
+                        subs.Add(subName);
+                    }
+                    index++;
+                }
+            }
+            
+            return subs;
+        }
+        
+        private int FindPattern(byte[] data, byte[] pattern, int startIndex)
+        {
+            for (int i = startIndex; i <= data.Length - pattern.Length; i++)
+            {
+                bool found = true;
+                for (int j = 0; j < pattern.Length; j++)
+                {
+                    if (data[i + j] != pattern[j])
+                    {
+                        found = false;
+                        break;
+                    }
+                }
+                if (found) return i;
+            }
+            return -1;
+        }
+        
+        private string ExtractSubNameFromPosition(byte[] data, int position)
+        {
+            try
+            {
+                var nameBytes = new List<byte>();
+                for (int i = position; i < Math.Min(position + 100, data.Length); i++)
+                {
+                    byte b = data[i];
+                    // Stop at parenthesis, space after name, or non-printable
+                    if (b == '(' || b == ')' || b == '\n' || b == '\r' || b == '\0')
+                    {
+                        break;
+                    }
+                    // Skip null bytes (for UTF-16)
+                    if (b == 0x00) continue;
+                    // Accept letters, digits, underscore
+                    if ((b >= 'A' && b <= 'Z') || (b >= 'a' && b <= 'z') || 
+                        (b >= '0' && b <= '9') || b == '_')
+                    {
+                        nameBytes.Add(b);
+                    }
+                    else if (nameBytes.Count > 0)
+                    {
+                        // Stop at first non-identifier character after we've started collecting
+                        break;
+                    }
+                }
+                
+                if (nameBytes.Count > 0)
+                {
+                    return System.Text.Encoding.ASCII.GetString(nameBytes.ToArray());
+                }
+            }
+            catch { }
+            
+            return "";
+        }
+        
+        private string ExtractSubNameFromString(string afterSub)
+        {
+            // Remove leading/trailing spaces
+            afterSub = afterSub.Trim();
+            
+            // Find the end of the name (parenthesis or space)
+            int endIndex = afterSub.IndexOfAny(new char[] { '(', ' ', '\t', '\n', '\r' });
+            
+            if (endIndex > 0)
+            {
+                return afterSub.Substring(0, endIndex).Trim();
+            }
+            else if (afterSub.Length > 0 && afterSub.Length < 50)
+            {
+                return afterSub.Trim();
+            }
+            
+            return "";
+        }
+        
+        private List<string> TryCommonSubNames(byte[] fileBytes)
+        {
+            var subs = new List<string>();
+            string[] commonNames = { "main", "Main", "MAIN", "macro", "Macro", "MACRO", 
+                                      "swmain", "SwMain", "start", "Start", "run", "Run",
+                                      "CreateSketch", "CreatePart", "DrawLine" };
+            
+            string content = System.Text.Encoding.ASCII.GetString(fileBytes);
+            
+            foreach (string name in commonNames)
+            {
+                // Look for patterns like "Sub main" or "sub main"
+                if (content.Contains($"Sub {name}", StringComparison.OrdinalIgnoreCase) ||
+                    content.Contains($"sub {name}", StringComparison.OrdinalIgnoreCase) ||
+                    content.Contains($"{name}()", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!subs.Contains(name))
+                    {
+                        subs.Add(name);
+                        AppendToTerminal($"  • 推測 SUB: {name}", Color.Gray);
+                    }
+                }
+            }
+            
+            return subs;
+        }
+        
         private bool ExtractMacroContentUsingVBA(string swpPath, string basPath)
         {
             try
@@ -1326,9 +1583,12 @@ namespace MiniSolidworkAutomator
 
         private (string module, string procedure)? ShowVBASubSelection(string macroPath)
         {
+            // First detect actual SUB procedures in the file
+            var detectedSubs = DetectSubProceduresInSwp(macroPath);
+            
             using var dialog = new Form
             {
-                Width = 420, Height = 280,
+                Width = 500, Height = 320,
                 Text = "選擇要執行的程序 / Select Procedure",
                 FormBorderStyle = FormBorderStyle.FixedDialog,
                 StartPosition = FormStartPosition.CenterParent,
@@ -1342,25 +1602,33 @@ namespace MiniSolidworkAutomator
             {
                 Text = $"宏檔案: {Path.GetFileName(macroPath)}",
                 Location = new Point(15, 15),
-                Size = new Size(380, 20),
+                Size = new Size(410, 20),
                 ForeColor = TextWhite
+            };
+
+            var lblDetected = new Label
+            {
+                Text = detectedSubs.Count > 0 ? $"找到 {detectedSubs.Count} 個 SUB 程序:" : "未找到 SUB 程序，使用預設選項:",
+                Location = new Point(15, 40),
+                Size = new Size(410, 20),
+                ForeColor = detectedSubs.Count > 0 ? Color.LightGreen : Color.Orange
             };
 
             var lblModule = new Label
             {
-                Text = "模塊名稱 / Module Name:",
-                Location = new Point(15, 45),
+                Text = "模塊名稱 / Module Name (可手動輸入):",
+                Location = new Point(15, 70),
                 AutoSize = true,
                 ForeColor = TextWhite
             };
 
             var cmbModule = new ComboBox
             {
-                Location = new Point(15, 68),
+                Location = new Point(15, 93),
                 Size = new Size(180, 25),
                 BackColor = DarkBackground,
                 ForeColor = TextWhite,
-                DropDownStyle = ComboBoxStyle.DropDown
+                DropDownStyle = ComboBoxStyle.DropDown // Allow free text input
             };
             // Common module names
             cmbModule.Items.AddRange(new[] { "Module1", "main", "Main", "ThisDocument", "Sheet1", "macro", "Macro" });
@@ -1368,28 +1636,82 @@ namespace MiniSolidworkAutomator
 
             var lblProcedure = new Label
             {
-                Text = "程序名稱 / Procedure Name:",
-                Location = new Point(210, 45),
+                Text = "程序名稱 / Procedure Name (可手動輸入):",
+                Location = new Point(210, 70),
                 AutoSize = true,
                 ForeColor = TextWhite
             };
 
             var cmbProcedure = new ComboBox
             {
-                Location = new Point(210, 68),
-                Size = new Size(180, 25),
+                Location = new Point(210, 93),
+                Size = new Size(200, 25),
                 BackColor = DarkBackground,
                 ForeColor = TextWhite,
-                DropDownStyle = ComboBoxStyle.DropDown
+                DropDownStyle = ComboBoxStyle.DropDown // Allow free text input
             };
-            // Common procedure names
-            cmbProcedure.Items.AddRange(new[] { "main", "Main", "macro", "Macro", "swmain", "SwMain", "run", "Run", "start", "Start" });
-            cmbProcedure.Text = "main";
+            
+            // Add detected SUBs first, then recent entry points, then common ones
+            if (detectedSubs.Count > 0)
+            {
+                foreach (var sub in detectedSubs)
+                {
+                    cmbProcedure.Items.Add($"{sub} (已檢測)");
+                }
+                cmbProcedure.Text = $"{detectedSubs[0]} (已檢測)";
+            }
+            else
+            {
+                cmbProcedure.Text = "main";
+            }
+            
+            // Add recent entry points
+            var recentEntryPoints = settings.RecentEntryPoints.Take(10).ToList();
+            if (recentEntryPoints.Count > 0)
+            {
+                foreach (var recent in recentEntryPoints)
+                {
+                    string moduleItem = $"{recent.ModuleName} (最近使用)";
+                    string procedureItem = $"{recent.ProcedureName} (最近使用)";
+                    
+                    if (!cmbModule.Items.Contains(moduleItem))
+                        cmbModule.Items.Add(moduleItem);
+                    if (!cmbProcedure.Items.Contains(procedureItem))
+                        cmbProcedure.Items.Add(procedureItem);
+                }
+                
+                // Set most recent as default if no detected subs
+                if (detectedSubs.Count == 0)
+                {
+                    var mostRecent = recentEntryPoints.First();
+                    cmbModule.Text = mostRecent.ModuleName;
+                    cmbProcedure.Text = mostRecent.ProcedureName;
+                }
+            }
+            
+            // Add common procedure names
+            string[] commonProcedures = { "main", "Main", "macro", "Macro", "swmain", "SwMain", "run", "Run", "start", "Start" };
+            foreach (var proc in commonProcedures)
+            {
+                if (!cmbProcedure.Items.Cast<string>().Any(item => item.StartsWith(proc + " ")))
+                {
+                    cmbProcedure.Items.Add(proc);
+                }
+            }
+
+            var lblDetectedList = new Label
+            {
+                Text = detectedSubs.Count > 0 ? string.Join(", ", detectedSubs) : "無",
+                Location = new Point(15, 125),
+                Size = new Size(410, 40),
+                ForeColor = Color.FromArgb(180, 180, 180),
+                Font = new Font("Consolas", 8)
+            };
 
             var btnAuto = new Button
             {
-                Text = "🔍 自動偵測",
-                Location = new Point(15, 105),
+                Text = "🔍 重新檢測",
+                Location = new Point(15, 175),
                 Size = new Size(100, 32),
                 FlatStyle = FlatStyle.Flat,
                 BackColor = AccentBlue,
@@ -1397,16 +1719,28 @@ namespace MiniSolidworkAutomator
             };
             btnAuto.Click += (s, e) =>
             {
-                // Try to detect common combinations
-                cmbModule.Text = "Module1";
-                cmbProcedure.Text = "main";
-                MessageBox.Show("已設置為常見組合: Module1.main\n若執行失敗，請手動調整模塊和程序名稱", "自動偵測", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                var newDetected = DetectSubProceduresInSwp(macroPath);
+                if (newDetected.Count > 0)
+                {
+                    cmbProcedure.Items.Clear();
+                    foreach (var sub in newDetected)
+                    {
+                        cmbProcedure.Items.Add($"{sub} (新檢測)");
+                    }
+                    cmbProcedure.Text = $"{newDetected[0]} (新檢測)";
+                    lblDetectedList.Text = string.Join(", ", newDetected);
+                    MessageBox.Show($"重新檢測到 {newDetected.Count} 個 SUB 程序", "檢測結果", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    MessageBox.Show("未找到任何 SUB 程序，請手動輸入或使用預設選項", "檢測結果", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
             };
 
             var chkTryAll = new CheckBox
             {
                 Text = "執行失敗時自動嘗試其他組合",
-                Location = new Point(125, 110),
+                Location = new Point(125, 180),
                 Size = new Size(250, 25),
                 ForeColor = TextWhite,
                 Checked = true
@@ -1414,16 +1748,81 @@ namespace MiniSolidworkAutomator
 
             var lblTip = new Label
             {
-                Text = "💡 提示: 常見組合為 Module1.main 或 main.main",
-                Location = new Point(15, 145),
-                Size = new Size(380, 40),
+                Text = detectedSubs.Count > 0 ? 
+                    "💡 已檢測到宏中的 SUB 程序，也可手動輸入名稱" :
+                    "💡 提示: 請手動輸入模塊和程序名稱，或使用預設值",
+                Location = new Point(15, 210),
+                Size = new Size(410, 40),
                 ForeColor = Color.FromArgb(180, 180, 180)
+            };
+
+            // Add validation for inputs
+            var btnValidate = new Button
+            {
+                Text = "✓ 驗證輸入",
+                Location = new Point(15, 260),
+                Size = new Size(80, 32),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = AccentBlue,
+                ForeColor = TextWhite
+            };
+            btnValidate.Click += (s, e) =>
+            {
+                string module = cmbModule.Text.Trim().Replace(" (最近使用)", "");
+                string procedure = cmbProcedure.Text.Trim().Replace(" (已檢測)", "").Replace(" (新檢測)", "").Replace(" (最近使用)", "");
+                
+                if (string.IsNullOrEmpty(module) || string.IsNullOrEmpty(procedure))
+                {
+                    MessageBox.Show("請輸入模塊名稱和程序名稱", "輸入錯誤", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+                
+                if (!IsValidIdentifier(module) || !IsValidIdentifier(procedure))
+                {
+                    MessageBox.Show("請輸入有效的標識符名稱（只能包含字母、數字和下劃線，且以字母開頭）", "輸入錯誤", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+                
+                MessageBox.Show($"輸入有效！\n模塊: {module}\n程序: {procedure}", "驗證成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            };
+            
+            var btnSave = new Button
+            {
+                Text = "💾 保存入口",
+                Location = new Point(105, 260),
+                Size = new Size(80, 32),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = AccentGreen,
+                ForeColor = TextWhite
+            };
+            btnSave.Click += (s, e) =>
+            {
+                string module = cmbModule.Text.Trim().Replace(" (最近使用)", "");
+                string procedure = cmbProcedure.Text.Trim().Replace(" (已檢測)", "").Replace(" (新檢測)", "").Replace(" (最近使用)", "");
+                
+                if (string.IsNullOrEmpty(module) || string.IsNullOrEmpty(procedure))
+                {
+                    MessageBox.Show("請輸入有效的模塊名稱和程序名稱", "無法保存", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+                
+                if (!IsValidIdentifier(module) || !IsValidIdentifier(procedure))
+                {
+                    MessageBox.Show("請輸入有效的標識符名稱", "無法保存", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+                
+                // Save the entry point
+                settings.AddRecentEntryPoint(module, procedure, macroPath);
+                settings.Save();
+                
+                MessageBox.Show($"入口點已保存！\n模塊: {module}\n程序: {procedure}\n\n下次使用時將顯示在建議列表中", "保存成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
             };
 
             var btnOK = new Button
             {
                 Text = "執行 / Run",
-                Location = new Point(220, 190),
+                Location = new Point(280, 260),
                 Size = new Size(80, 32),
                 DialogResult = DialogResult.OK,
                 FlatStyle = FlatStyle.Flat,
@@ -1434,7 +1833,7 @@ namespace MiniSolidworkAutomator
             var btnCancel = new Button
             {
                 Text = "取消 / Cancel",
-                Location = new Point(310, 190),
+                Location = new Point(370, 260),
                 Size = new Size(80, 32),
                 DialogResult = DialogResult.Cancel,
                 FlatStyle = FlatStyle.Flat,
@@ -1442,7 +1841,7 @@ namespace MiniSolidworkAutomator
                 ForeColor = TextWhite
             };
 
-            dialog.Controls.AddRange(new Control[] { lblFile, lblModule, cmbModule, lblProcedure, cmbProcedure, btnAuto, chkTryAll, lblTip, btnOK, btnCancel });
+            dialog.Controls.AddRange(new Control[] { lblFile, lblDetected, lblModule, cmbModule, lblProcedure, cmbProcedure, lblDetectedList, btnAuto, chkTryAll, lblTip, btnValidate, btnSave, btnOK, btnCancel });
             dialog.AcceptButton = btnOK;
             dialog.CancelButton = btnCancel;
 
@@ -1450,10 +1849,38 @@ namespace MiniSolidworkAutomator
 
             if (dialog.ShowDialog() == DialogResult.OK)
             {
-                return (cmbModule.Text.Trim(), cmbProcedure.Text.Trim());
+                string selectedModule = cmbModule.Text.Trim().Replace(" (最近使用)", "");
+                string selectedProcedure = cmbProcedure.Text.Replace(" (已檢測)", "").Replace(" (新檢測)", "").Replace(" (最近使用)", "").Trim();
+                
+                // Validate inputs before returning
+                if (string.IsNullOrEmpty(selectedModule) || string.IsNullOrEmpty(selectedProcedure))
+                {
+                    MessageBox.Show("請輸入有效的模塊名稱和程序名稱", "輸入錯誤", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return ShowVBASubSelection(macroPath); // Show dialog again
+                }
+                
+                if (!IsValidIdentifier(selectedModule) || !IsValidIdentifier(selectedProcedure))
+                {
+                    MessageBox.Show("請輸入有效的標識符名稱", "輸入錯誤", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return ShowVBASubSelection(macroPath); // Show dialog again
+                }
+                
+                // Auto-save the entry point when user executes
+                settings.AddRecentEntryPoint(selectedModule, selectedProcedure, macroPath);
+                settings.Save();
+                
+                return (selectedModule, selectedProcedure);
             }
 
             return null;
+        }
+        
+        private bool IsValidIdentifier(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return false;
+            if (!char.IsLetter(name[0])) return false;
+            
+            return name.All(c => char.IsLetterOrDigit(c) || c == '_');
         }
 
         private void RunVBAMacro(string? vbaCode, string? existingFilePath)

@@ -7,6 +7,23 @@
     <Nullable>enable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon></ApplicationIcon>
+    
+    <!-- Single File Publishing Configuration -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <PublishTrimmed>false</PublishTrimmed>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    
+    <!-- Assembly Information -->
+    <AssemblyTitle>MiniSW SolidWorks Automator</AssemblyTitle>
+    <AssemblyDescription>SolidWorks automation tool with VBA and C# macro support</AssemblyDescription>
+    <AssemblyCompany>MiniSW</AssemblyCompany>
+    <AssemblyProduct>MiniSW SolidWorks Automator</AssemblyProduct>
+    <AssemblyCopyright>Copyright © 2026</AssemblyCopyright>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>

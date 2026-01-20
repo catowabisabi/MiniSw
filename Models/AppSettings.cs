@@ -47,6 +47,14 @@ namespace MiniSolidworkAutomator.Models
         public MacroType Type { get; set; } = MacroType.CSharp;
     }
 
+    public class RecentEntryPoint
+    {
+        public string ModuleName { get; set; } = "";
+        public string ProcedureName { get; set; } = "";
+        public DateTime LastUsed { get; set; } = DateTime.Now;
+        public string FilePath { get; set; } = ""; // Optional: associate with specific file
+    }
+
     public class ExecutionHistoryItem
     {
         public string FileName { get; set; } = "";
@@ -74,6 +82,7 @@ namespace MiniSolidworkAutomator.Models
         public List<NoteItem> Notes { get; set; } = new List<NoteItem>();
         public List<RecentFileItem> RecentFiles { get; set; } = new List<RecentFileItem>();
         public List<ExecutionHistoryItem> ExecutionHistory { get; set; } = new List<ExecutionHistoryItem>();
+        public List<RecentEntryPoint> RecentEntryPoints { get; set; } = new List<RecentEntryPoint>();
         public string LastOpenedFile { get; set; } = "";
         public int WindowWidth { get; set; } = 1400;
         public int WindowHeight { get; set; } = 850;
@@ -82,6 +91,7 @@ namespace MiniSolidworkAutomator.Models
         public int AutoSaveIntervalSeconds { get; set; } = 60;
         public int MaxRecentFiles { get; set; } = 15;
         public int MaxExecutionHistory { get; set; } = 50;
+        public int MaxRecentEntryPoints { get; set; } = 20;
 
         private static string SettingsPath => Path.Combine(
             AppDomain.CurrentDomain.BaseDirectory, 
@@ -127,6 +137,34 @@ namespace MiniSolidworkAutomator.Models
             // Trim to max
             if (ExecutionHistory.Count > MaxExecutionHistory)
                 ExecutionHistory = ExecutionHistory.Take(MaxExecutionHistory).ToList();
+        }
+        
+        public void AddRecentEntryPoint(string moduleName, string procedureName, string filePath = "")
+        {
+            // Remove existing entry if it exists
+            var existing = RecentEntryPoints.FirstOrDefault(e => 
+                e.ModuleName.Equals(moduleName, StringComparison.OrdinalIgnoreCase) && 
+                e.ProcedureName.Equals(procedureName, StringComparison.OrdinalIgnoreCase));
+            
+            if (existing != null)
+            {
+                RecentEntryPoints.Remove(existing);
+            }
+            
+            // Add new entry at the beginning
+            RecentEntryPoints.Insert(0, new RecentEntryPoint
+            {
+                ModuleName = moduleName,
+                ProcedureName = procedureName,
+                FilePath = filePath,
+                LastUsed = DateTime.Now
+            });
+            
+            // Trim to max size
+            if (RecentEntryPoints.Count > MaxRecentEntryPoints)
+            {
+                RecentEntryPoints.RemoveRange(MaxRecentEntryPoints, RecentEntryPoints.Count - MaxRecentEntryPoints);
+            }
         }
 
         public static AppSettings Load()
