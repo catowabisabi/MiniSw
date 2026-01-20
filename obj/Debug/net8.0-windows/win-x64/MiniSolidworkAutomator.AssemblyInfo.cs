@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MiniSolidworkAutomator")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+145ad12db6e4c5656ba275ff05124c649441fb4d")]
 [assembly: System.Reflection.AssemblyProductAttribute("MiniSolidworkAutomator")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MiniSW SolidWorks Automator")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
