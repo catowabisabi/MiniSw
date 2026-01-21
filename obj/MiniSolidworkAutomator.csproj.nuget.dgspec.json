@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "c:\\Users\\Chris\\Desktop\\MiniSw\\MiniSolidworkAutomator.csproj": {}
+    "C:\\Users\\Chris\\Desktop\\MiniSw\\MiniSolidworkAutomator.csproj": {}
   },
   "projects": {
-    "c:\\Users\\Chris\\Desktop\\MiniSw\\MiniSolidworkAutomator.csproj": {
+    "C:\\Users\\Chris\\Desktop\\MiniSw\\MiniSolidworkAutomator.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "c:\\Users\\Chris\\Desktop\\MiniSw\\MiniSolidworkAutomator.csproj",
+        "projectUniqueName": "C:\\Users\\Chris\\Desktop\\MiniSw\\MiniSolidworkAutomator.csproj",
         "projectName": "MiniSolidworkAutomator",
-        "projectPath": "c:\\Users\\Chris\\Desktop\\MiniSw\\MiniSolidworkAutomator.csproj",
+        "projectPath": "C:\\Users\\Chris\\Desktop\\MiniSw\\MiniSolidworkAutomator.csproj",
         "packagesPath": "C:\\Users\\Chris\\.nuget\\packages\\",
-        "outputPath": "c:\\Users\\Chris\\Desktop\\MiniSw\\obj\\",
+        "outputPath": "C:\\Users\\Chris\\Desktop\\MiniSw\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Chris\\AppData\\Roaming\\NuGet\\NuGet.Config"

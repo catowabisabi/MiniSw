@@ -421,7 +421,7 @@ string pdfPath = Path.ChangeExtension(path, "".pdf"");
 var ext = swModel.Extension;
 int errors = 0, warnings = 0;
 
-var exportData = swApp.GetExportFileData((int)swExportDataFileType_e.swExportPdfData) as IExportPdfData;
+var exportData = var exportData = swApp.GetExportFileData((int)swExportDataFileType_e.swExportPdfData) as IExportPdfData;ExportFileData((int)swExportDataFileType_e.swExportPdfData) as IExportPdfData;
 if (exportData != null)
 {
     exportData.ExportAsOne = true;
