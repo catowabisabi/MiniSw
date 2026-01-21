@@ -44,11 +44,11 @@
     <Reference Include="CADBooster.SolidDna">
       <HintPath>solidwork-api\CADBooster.SolidDna.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.VisualBasic" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.8.0" />
+    <PackageReference Include="Microsoft.VisualBasic" Version="10.3.0" />
   </ItemGroup>
 
 </Project>

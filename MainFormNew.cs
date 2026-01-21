@@ -162,35 +162,40 @@ namespace MiniSolidworkAutomator
 
         protected virtual void DrawTabStrip(Graphics g)
         {
-            // Calculate tab strip height
-            int tabHeight = ItemSize.Height + 4;
-            
-            // Fill the entire tab strip area with dark color
+            // Tab strip height equals the top of DisplayRectangle (client area below tabs)
+            int tabHeight = Math.Max(DisplayRectangle.Top, ItemSize.Height + 4);
+
+            // Fill the entire tab strip area with dark color (extend beyond Width to cover container edges)
             using (var brush = new SolidBrush(ThemeManager.TabUnselected))
             {
-                g.FillRectangle(brush, 0, 0, Width, tabHeight);
+                g.FillRectangle(brush, -10, -10, Width + 20, tabHeight + 10);
             }
         }
 
         protected virtual void DrawScrollArea(Graphics g)
         {
             // Paint over the scroll button area (right side where scroll buttons appear)
-            if (TabCount > 0)
+            int tabHeight = Math.Max(DisplayRectangle.Top, ItemSize.Height + 4);
+            
+            // Always fill the entire right area to cover any white edges
+            using (var brush = new SolidBrush(ThemeManager.TabUnselected))
             {
-                try
+                if (TabCount > 0)
                 {
-                    var lastTabRect = GetTabRect(TabCount - 1);
-                    // Fill area after the last tab to the right edge
-                    if (lastTabRect.Right < Width)
+                    try
                     {
-                        var scrollArea = new Rectangle(lastTabRect.Right, 0, Width - lastTabRect.Right, ItemSize.Height + 4);
-                        using (var brush = new SolidBrush(ThemeManager.TabUnselected))
-                        {
-                            g.FillRectangle(brush, scrollArea);
-                        }
+                        var lastTabRect = GetTabRect(TabCount - 1);
+                        // Fill area after the last tab to beyond right edge
+                        var scrollArea = new Rectangle(lastTabRect.Right, -10, Width - lastTabRect.Right + 20, tabHeight + 20);
+                        g.FillRectangle(brush, scrollArea);
                     }
+                    catch { /* Ignore if tabs are not visible */ }
                 }
-                catch { /* Ignore if tabs are not visible */ }
+                else
+                {
+                    // No tabs - fill entire strip
+                    g.FillRectangle(brush, -10, -10, Width + 20, tabHeight + 20);
+                }
             }
         }
 
@@ -258,8 +263,8 @@ namespace MiniSolidworkAutomator
             SizeMode = TabSizeMode.Normal;
             Multiline = false;
             ShowToolTips = true;
-            // Add extra padding for close button (X)
-            Padding = new Point(15, 4);
+            // Add extra padding for close button (X) - increased for longer names
+            Padding = new Point(20, 4);
         }
 
         protected override void DrawTab(Graphics g, int index)
@@ -286,15 +291,20 @@ namespace MiniSolidworkAutomator
             var displayText = isUnsaved ? "● " + tabPage.Text : tabPage.Text;
 
             var textColor = isSelected ? ThemeManager.TextWhite : Color.Gray;
+            
+            // Close button area - always at right edge of tab
+            int closeButtonWidth = 20;
+            var closeRect = new Rectangle(tabRect.Right - closeButtonWidth, tabRect.Y + (tabRect.Height - 12) / 2, 12, 12);
+            
             using (var brush = new SolidBrush(textColor))
             {
-                var textRect = new RectangleF(tabRect.X + 5, tabRect.Y + 3, tabRect.Width - 25, tabRect.Height - 4);
+                // Text area excludes close button space
+                var textRect = new RectangleF(tabRect.X + 6, tabRect.Y + 3, tabRect.Width - closeButtonWidth - 8, tabRect.Height - 4);
                 var sf = new StringFormat { LineAlignment = StringAlignment.Center, Trimming = StringTrimming.EllipsisCharacter };
                 g.DrawString(displayText, Font, brush, textRect, sf);
             }
 
             // Draw close button (X)
-            var closeRect = new Rectangle(tabRect.Right - 18, tabRect.Y + (tabRect.Height - 12) / 2, 12, 12);
             using (var pen = new Pen(isSelected ? ThemeManager.TextWhite : Color.DimGray, 1.5f))
             {
                 g.DrawLine(pen, closeRect.Left + 2, closeRect.Top + 2, closeRect.Right - 2, closeRect.Bottom - 2);
@@ -309,7 +319,9 @@ namespace MiniSolidworkAutomator
                 for (int i = 0; i < TabCount; i++)
                 {
                     var tabRect = GetTabRect(i);
-                    var closeRect = new Rectangle(tabRect.Right - 18, tabRect.Y + (tabRect.Height - 12) / 2, 12, 12);
+                    // Match the close button position used in DrawTab
+                    int closeButtonWidth = 20;
+                    var closeRect = new Rectangle(tabRect.Right - closeButtonWidth, tabRect.Y + (tabRect.Height - 12) / 2, 12, 12);
                     
                     if (closeRect.Contains(e.Location))
                     {
@@ -647,8 +659,8 @@ namespace MiniSolidworkAutomator
                 BackColor = DarkSplitter,
                 BorderStyle = BorderStyle.None
             };
-            mainSplit.Panel1.BackColor = DarkBackground;
-            mainSplit.Panel2.BackColor = DarkBackground;
+            mainSplit.Panel1.BackColor = ThemeManager.TabUnselected;
+            mainSplit.Panel2.BackColor = ThemeManager.TabUnselected;
 
             SetupCodePanel();
             SetupRightPanel();
@@ -792,7 +804,7 @@ namespace MiniSolidworkAutomator
             codePanel = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = DarkBackground,
+                BackColor = ThemeManager.TabUnselected,
                 Padding = new Padding(0)
             };
 
@@ -838,11 +850,10 @@ namespace MiniSolidworkAutomator
                 }
             }
 
-            // Tab control for code files - using custom dark tab control
+            // Tab control for code files - using custom dark tab control wrapped in a container
             var darkCodeTabs = new DarkCodeTabControl
             {
-                Dock = DockStyle.Fill,
-                BackColor = DarkBackground,
+                BackColor = ThemeManager.TabUnselected,
                 Font = new Font("Segoe UI", 9),
                 IsTabUnsaved = (tabId) => openFiles.FirstOrDefault(f => f.Id == tabId)?.IsUnsaved ?? false
             };
@@ -850,9 +861,23 @@ namespace MiniSolidworkAutomator
             darkCodeTabs.MouseDown += CodeTabs_MouseDown;
             darkCodeTabs.SelectedIndexChanged += CodeTabs_SelectedIndexChanged;
             darkCodeTabs.MouseMove += CodeTabs_MouseMove;
-            
+
+            // Container to hide any native white edges
+            var tabContainer = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = ThemeManager.TabUnselected,
+                Padding = new Padding(0)
+            };
+            tabContainer.Resize += (s, e) =>
+            {
+                darkCodeTabs.Location = new Point(-2, 0);
+                darkCodeTabs.Size = new Size(tabContainer.Width + 4, tabContainer.Height + 2);
+            };
+            tabContainer.Controls.Add(darkCodeTabs);
+
             codeTabs = darkCodeTabs;
-            codePanel.Controls.Add(codeTabs);
+            codePanel.Controls.Add(tabContainer);
         }
 
         private void CodeTabs_MouseDown(object? sender, MouseEventArgs e)
@@ -901,14 +926,14 @@ namespace MiniSolidworkAutomator
                 BackColor = DarkSplitter,
                 BorderStyle = BorderStyle.None
             };
-            rightSplit.Panel1.BackColor = DarkBackground;
-            rightSplit.Panel2.BackColor = DarkBackground;
+            rightSplit.Panel1.BackColor = ThemeManager.TabUnselected;
+            rightSplit.Panel2.BackColor = ThemeManager.TabUnselected;
 
             // Browser tabs (with custom drawing for dark theme)
             browserTabs = new DarkTabControl
             {
                 Font = new Font("Segoe UI", 9),
-                BackColor = DarkBackground,
+                BackColor = ThemeManager.TabUnselected,
                 SizeMode = TabSizeMode.Fixed,
                 ItemSize = new Size(80, 24)
             };
@@ -932,9 +957,23 @@ namespace MiniSolidworkAutomator
 
             browserTabs.TabPages.AddRange(new[] { recentTab, csharpTab, vbaTab, snippetsTab, historyTab, promptsTab, notesTab });
 
-            // Add directly without container - DarkTabControl handles its own painting
-            browserTabs.Dock = DockStyle.Fill;
-            rightSplit.Panel1.Controls.Add(browserTabs);
+            // Use container to hide native edges and fill strip background
+            var browserContainer = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = ThemeManager.TabUnselected,
+                Padding = new Padding(0)
+            };
+            browserContainer.Resize += (s, e) =>
+            {
+                browserTabs.Location = new Point(-4, -2);
+                browserTabs.Size = new Size(browserContainer.Width + 8, browserContainer.Height + 6);
+            };
+            // Initial size/position to avoid first-paint gaps
+            browserTabs.Location = new Point(-4, -2);
+            browserTabs.Size = new Size(browserContainer.Width + 8, browserContainer.Height + 6);
+            browserContainer.Controls.Add(browserTabs);
+            rightSplit.Panel1.Controls.Add(browserContainer);
 
             // Terminal
             SetupTerminal();
@@ -1027,7 +1066,17 @@ namespace MiniSolidworkAutomator
                 BorderStyle = BorderStyle.None
             };
             split.Panel1.BackColor = DarkPanel;
-            split.Panel2.BackColor = DarkBackground;
+            split.Panel2.BackColor = DarkPanel;
+
+            // Keep left list at ~1/3 width
+            split.Resize += (s, e) =>
+            {
+                var target = Math.Max(150, split.Width / 3);
+                if (Math.Abs(split.SplitterDistance - target) > 2)
+                {
+                    split.SplitterDistance = target;
+                }
+            };
 
             // List
             var listBox = new DarkListBox
@@ -1055,7 +1104,7 @@ namespace MiniSolidworkAutomator
             split.Panel1.Controls.Add(toolbar);
 
             // Editor
-            var editorPanel = new Panel { Dock = DockStyle.Fill, BackColor = DarkBackground, Padding = new Padding(10) };
+            var editorPanel = new Panel { Dock = DockStyle.Fill, BackColor = DarkPanel, Padding = new Padding(10) };
             
             var nameBox = new TextBox
             {
@@ -1069,10 +1118,10 @@ namespace MiniSolidworkAutomator
             };
             nameBox.TextChanged += PromptName_TextChanged;
 
-            var contentBox = new RichTextBox
+            var contentBox = new DarkRichTextBox
             {
                 Dock = DockStyle.Fill,
-                BackColor = DarkBackground,
+                BackColor = DarkPanel,
                 ForeColor = TextWhite,
                 BorderStyle = BorderStyle.None,
                 Font = new Font("Consolas", 10),
@@ -1086,9 +1135,11 @@ namespace MiniSolidworkAutomator
                 Dock = DockStyle.Bottom,
                 Height = 36,
                 FlatStyle = FlatStyle.Flat,
-                BackColor = AccentBlue,
+                BackColor = Color.FromArgb(25, 80, 140),
                 ForeColor = TextWhite
             };
+            copyBtn.FlatAppearance.BorderColor = Color.FromArgb(100, 100, 100);
+            copyBtn.FlatAppearance.BorderSize = 1;
             copyBtn.Click += (s, e) =>
             {
                 if (!string.IsNullOrEmpty(contentBox.Text))
@@ -1117,7 +1168,17 @@ namespace MiniSolidworkAutomator
                 BorderStyle = BorderStyle.None
             };
             split.Panel1.BackColor = DarkPanel;
-            split.Panel2.BackColor = DarkBackground;
+            split.Panel2.BackColor = DarkPanel;
+
+            // Keep left list at ~1/3 width
+            split.Resize += (s, e) =>
+            {
+                var target = Math.Max(150, split.Width / 3);
+                if (Math.Abs(split.SplitterDistance - target) > 2)
+                {
+                    split.SplitterDistance = target;
+                }
+            };
 
             var listBox = new DarkListBox
             {
@@ -1137,7 +1198,7 @@ namespace MiniSolidworkAutomator
             split.Panel1.Controls.Add(listBox);
             split.Panel1.Controls.Add(toolbar);
 
-            var editorPanel = new Panel { Dock = DockStyle.Fill, BackColor = DarkBackground, Padding = new Padding(10) };
+            var editorPanel = new Panel { Dock = DockStyle.Fill, BackColor = DarkPanel, Padding = new Padding(10) };
 
             var nameBox = new TextBox
             {
@@ -1150,10 +1211,10 @@ namespace MiniSolidworkAutomator
             };
             nameBox.TextChanged += NoteName_TextChanged;
 
-            var contentBox = new RichTextBox
+            var contentBox = new DarkRichTextBox
             {
                 Dock = DockStyle.Fill,
-                BackColor = DarkBackground,
+                BackColor = DarkPanel,
                 ForeColor = TextWhite,
                 BorderStyle = BorderStyle.None,
                 Font = new Font("Segoe UI", 10),
@@ -1201,7 +1262,7 @@ namespace MiniSolidworkAutomator
                 BackColor = DarkPanel,
                 ForeColor = TextWhite
             };
-            btnCopyTerminal.FlatAppearance.BorderColor = DarkSplitter;
+            btnCopyTerminal.FlatAppearance.BorderColor = Color.FromArgb(100, 100, 100);
             btnCopyTerminal.FlatAppearance.BorderSize = 1;
             btnCopyTerminal.Click += (s, e) =>
             {
@@ -1222,7 +1283,7 @@ namespace MiniSolidworkAutomator
                 BackColor = DarkPanel,
                 ForeColor = TextWhite
             };
-            clearBtn.FlatAppearance.BorderColor = DarkSplitter;
+            clearBtn.FlatAppearance.BorderColor = Color.FromArgb(100, 100, 100);
             clearBtn.FlatAppearance.BorderSize = 1;
             clearBtn.Click += (s, e) => terminalDisplay.Clear();
 

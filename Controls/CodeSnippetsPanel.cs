@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using MiniSolidworkAutomator.Localization;
 
@@ -21,6 +22,18 @@ namespace MiniSolidworkAutomator.Controls
         private static readonly Color AccentBlue = Color.FromArgb(33, 150, 243);
 
         public event EventHandler<string>? InsertSnippet;
+
+        [DllImport("uxtheme.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        private static extern int SetWindowTheme(IntPtr hwnd, string? pszSubAppName, string? pszSubIdList);
+
+        private static void ApplyDarkScrollbar(Control control)
+        {
+            if (control.IsHandleCreated)
+            {
+                SetWindowTheme(control.Handle, "DarkMode_Explorer", null);
+            }
+            control.HandleCreated += (s, e) => SetWindowTheme(control.Handle, "DarkMode_Explorer", null);
+        }
 
         public CodeSnippetsPanel()
         {
@@ -46,7 +59,7 @@ namespace MiniSolidworkAutomator.Controls
                 SplitterWidth = 3
             };
             split.Panel1.BackColor = DarkPanel;
-            split.Panel2.BackColor = DarkBackground;
+            split.Panel2.BackColor = DarkPanel;
 
             // Snippet tree
             snippetTree = new TreeView
@@ -60,6 +73,7 @@ namespace MiniSolidworkAutomator.Controls
                 ShowPlusMinus = true,
                 ItemHeight = 22
             };
+            ApplyDarkScrollbar(snippetTree);
             snippetTree.AfterSelect += SnippetTree_AfterSelect;
             snippetTree.NodeMouseDoubleClick += (s, e) => InsertCurrentSnippet();
 
@@ -67,20 +81,21 @@ namespace MiniSolidworkAutomator.Controls
             var previewPanel = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = DarkBackground,
+                BackColor = DarkPanel,
                 Padding = new Padding(5)
             };
 
-            previewBox = new RichTextBox
+            previewBox = new DarkRichTextBox
             {
                 Dock = DockStyle.Fill,
-                BackColor = DarkBackground,
+                BackColor = DarkPanel,
                 ForeColor = Color.FromArgb(180, 180, 180),
                 BorderStyle = BorderStyle.None,
                 Font = new Font("Cascadia Code", 9),
                 ReadOnly = true,
                 WordWrap = false
             };
+            ApplyDarkScrollbar(previewBox);
 
             insertButton = new Button
             {

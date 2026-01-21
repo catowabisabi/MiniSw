@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace MiniSolidworkAutomator.Controls
@@ -29,6 +30,18 @@ namespace MiniSolidworkAutomator.Controls
 
         public new event EventHandler? TextChanged;
         public event EventHandler? BookmarksChanged;
+
+        [DllImport("uxtheme.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        private static extern int SetWindowTheme(IntPtr hwnd, string? pszSubAppName, string? pszSubIdList);
+
+        private static void ApplyDarkScrollbar(Control control)
+        {
+            if (control.IsHandleCreated)
+            {
+                SetWindowTheme(control.Handle, "DarkMode_Explorer", null);
+            }
+            control.HandleCreated += (s, e) => SetWindowTheme(control.Handle, "DarkMode_Explorer", null);
+        }
 
         public new string Text
         {
@@ -110,6 +123,7 @@ namespace MiniSolidworkAutomator.Controls
             editor.Resize += (s, e) => RefreshLineNumbers();
             editor.SelectionChanged += (s, e) => RefreshLineNumbers();
             editor.KeyDown += Editor_KeyDown;
+            ApplyDarkScrollbar(editor);
 
             // Add controls in order
             this.Controls.Add(editor);

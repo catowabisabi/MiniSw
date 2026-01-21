@@ -53,6 +53,10 @@
               "target": "Package",
               "version": "[8.0.22, )",
               "autoReferenced": true
+            },
+            "Microsoft.VisualBasic": {
+              "target": "Package",
+              "version": "[10.3.0, )"
             }
           },
           "imports": [
