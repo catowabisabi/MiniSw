@@ -30,7 +30,8 @@ namespace MiniSolidworkAutomator.Controls
         private void InitializeComponents()
         {
             this.BackColor = DarkPanel;
-            this.Padding = new Padding(5);
+            this.Padding = new Padding(0);  // Remove padding to eliminate white borders
+            this.BorderStyle = BorderStyle.None;
 
             var split = new SplitContainer
             {
@@ -39,8 +40,12 @@ namespace MiniSolidworkAutomator.Controls
                 SplitterDistance = 200,
                 BackColor = DarkPanel,
                 Panel1MinSize = 100,
-                Panel2MinSize = 80
+                Panel2MinSize = 80,
+                BorderStyle = BorderStyle.None,
+                SplitterWidth = 3
             };
+            split.Panel1.BackColor = DarkPanel;
+            split.Panel2.BackColor = DarkBackground;
 
             // Snippet tree
             snippetTree = new TreeView
@@ -100,12 +105,100 @@ namespace MiniSolidworkAutomator.Controls
         {
             if (e.Node?.Tag is CodeSnippet snippet)
             {
-                previewBox.Text = snippet.Code;
+                ApplySyntaxHighlighting(snippet.Code);
             }
             else
             {
                 previewBox.Text = "";
             }
+        }
+
+        private void ApplySyntaxHighlighting(string code)
+        {
+            previewBox.SuspendLayout();
+            previewBox.Text = code;
+            
+            // Define colors
+            var keywordColor = Color.FromArgb(86, 156, 214);   // Blue for keywords
+            var typeColor = Color.FromArgb(78, 201, 176);       // Teal for types
+            var stringColor = Color.FromArgb(214, 157, 133);    // Orange for strings
+            var commentColor = Color.FromArgb(106, 153, 85);    // Green for comments
+            var numberColor = Color.FromArgb(181, 206, 168);    // Light green for numbers
+            
+            // Keywords
+            string[] keywords = { "if", "else", "return", "var", "int", "string", "bool", "true", "false", 
+                                  "null", "new", "foreach", "for", "while", "in", "as", "is", "out", "ref",
+                                  "try", "catch", "finally", "throw", "using", "namespace", "class", "public",
+                                  "private", "void", "static", "object", "double", "float", "long" };
+            
+            // Types
+            string[] types = { "IPartDoc", "IAssemblyDoc", "IDrawingDoc", "IModelDoc2", "ISldWorks", 
+                              "IFeature", "IBody2", "IFace2", "IComponent2", "IView", "ISheet",
+                              "Color", "Print", "PrintError", "PrintWarning", "Path", "File" };
+            
+            // Highlight comments first (// style)
+            int pos = 0;
+            while ((pos = code.IndexOf("//", pos)) >= 0)
+            {
+                int endPos = code.IndexOf('\n', pos);
+                if (endPos < 0) endPos = code.Length;
+                HighlightRange(pos, endPos - pos, commentColor);
+                pos = endPos;
+            }
+            
+            // Highlight strings
+            pos = 0;
+            while ((pos = code.IndexOf('"', pos)) >= 0)
+            {
+                int endPos = code.IndexOf('"', pos + 1);
+                if (endPos < 0) break;
+                HighlightRange(pos, endPos - pos + 1, stringColor);
+                pos = endPos + 1;
+            }
+            
+            // Highlight keywords
+            foreach (var keyword in keywords)
+            {
+                HighlightWord(keyword, keywordColor);
+            }
+            
+            // Highlight types
+            foreach (var type in types)
+            {
+                HighlightWord(type, typeColor);
+            }
+            
+            previewBox.ResumeLayout();
+        }
+        
+        private void HighlightWord(string word, Color color)
+        {
+            int pos = 0;
+            string text = previewBox.Text;
+            while ((pos = text.IndexOf(word, pos, StringComparison.Ordinal)) >= 0)
+            {
+                // Check if it's a whole word
+                bool isStart = pos == 0 || !char.IsLetterOrDigit(text[pos - 1]);
+                bool isEnd = pos + word.Length >= text.Length || !char.IsLetterOrDigit(text[pos + word.Length]);
+                
+                if (isStart && isEnd)
+                {
+                    previewBox.Select(pos, word.Length);
+                    previewBox.SelectionColor = color;
+                }
+                pos += word.Length;
+            }
+            previewBox.Select(0, 0);
+        }
+        
+        private void HighlightRange(int start, int length, Color color)
+        {
+            if (start >= 0 && length > 0 && start + length <= previewBox.Text.Length)
+            {
+                previewBox.Select(start, length);
+                previewBox.SelectionColor = color;
+            }
+            previewBox.Select(0, 0);
         }
 
         private void InsertCurrentSnippet()

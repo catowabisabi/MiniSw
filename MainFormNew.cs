@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -15,21 +16,71 @@ using MiniSolidworkAutomator.Models;
 using MiniSolidworkAutomator.Controls;
 using MiniSolidworkAutomator.Services;
 using MiniSolidworkAutomator.Localization;
+using System.Collections;
 
 namespace MiniSolidworkAutomator
 {
+    // ListView sorter for file lists
+    public class ListViewItemComparer : IComparer
+    {
+        private readonly int column;
+        private readonly SortOrder order;
+
+        public ListViewItemComparer(int column, SortOrder order)
+        {
+            this.column = column;
+            this.order = order;
+        }
+
+        public int Compare(object? x, object? y)
+        {
+            if (x is not ListViewItem itemX || y is not ListViewItem itemY)
+                return 0;
+
+            string textX = column < itemX.SubItems.Count ? itemX.SubItems[column].Text : "";
+            string textY = column < itemY.SubItems.Count ? itemY.SubItems[column].Text : "";
+
+            int result;
+
+            // Try date comparison for column 2 (Modified time)
+            if (column == 2)
+            {
+                if (DateTime.TryParse(textX, out DateTime dateX) && DateTime.TryParse(textY, out DateTime dateY))
+                {
+                    result = DateTime.Compare(dateX, dateY);
+                }
+                else
+                {
+                    result = string.Compare(textX, textY, StringComparison.OrdinalIgnoreCase);
+                }
+            }
+            else
+            {
+                result = string.Compare(textX, textY, StringComparison.OrdinalIgnoreCase);
+            }
+
+            return order == SortOrder.Descending ? -result : result;
+        }
+    }
+
     public partial class MainFormNew : Form
     {
+        // ============ DWM API for Dark Title Bar ============
+        [DllImport("dwmapi.dll", PreserveSig = true)]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+        private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+        private const int DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 = 19;
+
         // ============ Theme Colors (Dark Theme) ============
         private static readonly Color DarkBackground = Color.FromArgb(30, 30, 30);
         private static readonly Color DarkPanel = Color.FromArgb(45, 45, 45);
         private static readonly Color DarkToolbar = Color.FromArgb(38, 50, 56);
         private static readonly Color DarkSplitter = Color.FromArgb(55, 71, 79);
-        private static readonly Color DarkTerminal = Color.FromArgb(24, 24, 24);
+        private static readonly Color DarkTerminal = Color.FromArgb(30, 30, 30);  // Match editor background
         private static readonly Color TextWhite = Color.White;
         private static readonly Color TextGray = Color.FromArgb(180, 180, 180);
-        private static readonly Color AccentGreen = Color.FromArgb(76, 175, 80);
-        private static readonly Color AccentRed = Color.FromArgb(244, 67, 54);
+        private static readonly Color AccentGreen = Color.FromArgb(46, 125, 50);  // Darker green for Run button
+        private static readonly Color AccentRed = Color.FromArgb(183, 28, 28);    // Darker red for Stop button
         private static readonly Color AccentBlue = Color.FromArgb(33, 150, 243);
         private static readonly Color AccentPurple = Color.FromArgb(142, 68, 173);
 
@@ -100,6 +151,25 @@ namespace MiniSolidworkAutomator
             this.MinimumSize = new Size(1000, 600);
             this.BackColor = DarkBackground;
             this.ForeColor = TextWhite;
+            this.FormBorderStyle = FormBorderStyle.Sizable;
+            
+            // Apply dark title bar
+            ApplyDarkTitleBar();
+        }
+
+        private void ApplyDarkTitleBar()
+        {
+            try
+            {
+                int useImmersiveDarkMode = 1;
+                // Try Windows 10 20H1 and later first
+                if (DwmSetWindowAttribute(this.Handle, DWMWA_USE_IMMERSIVE_DARK_MODE, ref useImmersiveDarkMode, sizeof(int)) != 0)
+                {
+                    // Fall back to earlier Windows 10 versions
+                    DwmSetWindowAttribute(this.Handle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, ref useImmersiveDarkMode, sizeof(int));
+                }
+            }
+            catch { /* Ignore if DWM API is not available */ }
         }
 
         private void SetupUI()
@@ -124,6 +194,8 @@ namespace MiniSolidworkAutomator
                 BackColor = DarkSplitter,
                 BorderStyle = BorderStyle.None
             };
+            mainSplit.Panel1.BackColor = DarkBackground;
+            mainSplit.Panel2.BackColor = DarkBackground;
 
             SetupCodePanel();
             SetupRightPanel();
@@ -209,7 +281,7 @@ namespace MiniSolidworkAutomator
             x += btnSave.Width + spacing;
 
             // Search button
-            var btnSearch = CreateToolbarButton("🔍 搜尋", x);
+            var btnSearch = CreateToolbarButton($"🔍 {Lang.Get("Search")}", x);
             btnSearch.Click += (s, e) => ShowSearchDialog(false);
             x += btnSearch.Width + spacing;
 
@@ -226,14 +298,15 @@ namespace MiniSolidworkAutomator
             x += btnRefresh.Width + spacing;
 
             // Help/Shortcuts button
-            var btnHelp = CreateToolbarButton("❓ 快捷鍵", x);
+            var btnHelp = CreateToolbarButton($"❓ {Lang.Get("Shortcuts")}", x);
             btnHelp.Click += (s, e) => ShowShortcutsHelp();
 
             x += btnHelp.Width + spacing;
 
-            // SWP to BAS converter button
-            var btnConverter = CreateToolbarButton("🔄 SWP→BAS", x);
-            btnConverter.BackColor = AccentPurple;
+            // SWP to BAS converter button - DISABLED due to bug that can corrupt SWP files
+            var btnConverter = CreateToolbarButton($"🔄 {Lang.Get("SwpToBas")}", x);
+            btnConverter.BackColor = Color.FromArgb(80, 80, 80);  // Grayed out
+            btnConverter.Enabled = false;
             btnConverter.Click += ConvertButton_Click;
 
             toolbar.Controls.Add(btnSearch);
@@ -429,6 +502,8 @@ namespace MiniSolidworkAutomator
                 BackColor = DarkSplitter,
                 BorderStyle = BorderStyle.None
             };
+            rightSplit.Panel1.BackColor = DarkBackground;
+            rightSplit.Panel2.BackColor = DarkBackground;
 
             // Browser tabs (standard TabControl)
             browserTabs = new TabControl
@@ -438,14 +513,14 @@ namespace MiniSolidworkAutomator
                 BackColor = DarkToolbar
             };
 
-            // Create tabs
-            var recentTab = new TabPage("📂 最近") { BackColor = DarkToolbar };
-            var csharpTab = new TabPage(Lang.Get("CSharpMacros")) { BackColor = DarkToolbar };
-            var vbaTab = new TabPage(Lang.Get("VBAMacros")) { BackColor = DarkToolbar };
-            var snippetsTab = new TabPage("📝 代碼片段") { BackColor = DarkToolbar };
-            var historyTab = new TabPage("📊 歷史") { BackColor = DarkToolbar };
-            var promptsTab = new TabPage(Lang.Get("Prompts")) { BackColor = DarkToolbar };
-            var notesTab = new TabPage(Lang.Get("Notes")) { BackColor = DarkToolbar };
+            // Create tabs - use localized names
+            var recentTab = new TabPage($"📂 {Lang.Get("RecentFiles")}") { BackColor = DarkPanel, BorderStyle = BorderStyle.None };
+            var csharpTab = new TabPage(Lang.Get("CSharpMacros")) { BackColor = DarkPanel, BorderStyle = BorderStyle.None };
+            var vbaTab = new TabPage(Lang.Get("VBAMacros")) { BackColor = DarkPanel, BorderStyle = BorderStyle.None };
+            var snippetsTab = new TabPage($"📝 {Lang.Get("Snippets")}") { BackColor = DarkPanel, BorderStyle = BorderStyle.None };
+            var historyTab = new TabPage($"📊 {Lang.Get("History")}") { BackColor = DarkPanel, BorderStyle = BorderStyle.None };
+            var promptsTab = new TabPage(Lang.Get("Prompts")) { BackColor = DarkPanel, BorderStyle = BorderStyle.None };
+            var notesTab = new TabPage(Lang.Get("Notes")) { BackColor = DarkPanel, BorderStyle = BorderStyle.None };
 
             SetupRecentFilesTab(recentTab);
             SetupMacroListView(csharpTab, MacroType.CSharp);
@@ -457,7 +532,7 @@ namespace MiniSolidworkAutomator
 
             browserTabs.TabPages.AddRange(new[] { recentTab, csharpTab, vbaTab, snippetsTab, historyTab, promptsTab, notesTab });
 
-            var browserPanel = new Panel { Dock = DockStyle.Fill };
+            var browserPanel = new Panel { Dock = DockStyle.Fill, BackColor = DarkBackground };
             browserPanel.Controls.Add(browserTabs);
 
             rightSplit.Panel1.Controls.Add(browserPanel);
@@ -468,54 +543,83 @@ namespace MiniSolidworkAutomator
 
         private void SetupMacroListView(TabPage tab, MacroType type)
         {
-            // Use TreeView for file explorer style
-            var treeView = new TreeView
+            // Use ListView for detailed file view with sorting
+            var listView = new ListView
             {
                 Dock = DockStyle.Fill,
                 BackColor = DarkPanel,
                 ForeColor = TextWhite,
                 BorderStyle = BorderStyle.None,
                 Font = new Font("Segoe UI", 9),
-                Name = type == MacroType.CSharp ? "csharpTree" : "vbaTree",
-                ShowLines = true,
-                ShowPlusMinus = true,
-                ShowRootLines = true,
+                Name = type == MacroType.CSharp ? "csharpList" : "vbaList",
+                View = System.Windows.Forms.View.Details,
                 FullRowSelect = true,
-                HotTracking = true,
-                ItemHeight = 22
+                GridLines = false
             };
 
-            treeView.NodeMouseDoubleClick += (s, e) =>
+            // Add columns
+            bool isEnglish = Lang.CurrentLanguage == "en-US";
+            listView.Columns.Add(isEnglish ? "Name" : "名稱", 180);
+            listView.Columns.Add(isEnglish ? "Ext" : "類型", 50);
+            listView.Columns.Add(isEnglish ? "Modified" : "修改時間", 130);
+            listView.Columns.Add(isEnglish ? "Path" : "路徑", 200);
+
+            // Enable column click sorting
+            listView.ColumnClick += ListView_ColumnClick;
+
+            listView.DoubleClick += (s, e) =>
             {
-                if (e.Node?.Tag is string path && File.Exists(path))
+                if (listView.SelectedItems.Count > 0 && listView.SelectedItems[0].Tag is string path && File.Exists(path))
                 {
                     OpenMacroFile(path, type);
                 }
             };
 
-            // Context menu for tree
-            var treeMenu = new ContextMenuStrip { BackColor = DarkPanel, ForeColor = TextWhite };
-            treeMenu.Items.Add("打開 / Open", null, (s, e) =>
+            // Context menu for list
+            var listMenu = new ContextMenuStrip { BackColor = DarkPanel, ForeColor = TextWhite };
+            listMenu.Items.Add(isEnglish ? "Open" : "打開", null, (s, e) =>
             {
-                if (treeView.SelectedNode?.Tag is string path && File.Exists(path))
+                if (listView.SelectedItems.Count > 0 && listView.SelectedItems[0].Tag is string path && File.Exists(path))
                     OpenMacroFile(path, type);
             });
-            treeMenu.Items.Add("在資源管理器中顯示 / Show in Explorer", null, (s, e) =>
+            listMenu.Items.Add(isEnglish ? "Show in Explorer" : "在資源管理器中顯示", null, (s, e) =>
             {
-                if (treeView.SelectedNode?.Tag is string path && File.Exists(path))
+                if (listView.SelectedItems.Count > 0 && listView.SelectedItems[0].Tag is string path && File.Exists(path))
                     System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{path}\"");
             });
-            treeMenu.Items.Add("複製路徑 / Copy Path", null, (s, e) =>
+            listMenu.Items.Add(isEnglish ? "Copy Path" : "複製路徑", null, (s, e) =>
             {
-                if (treeView.SelectedNode?.Tag is string path)
+                if (listView.SelectedItems.Count > 0 && listView.SelectedItems[0].Tag is string path)
                 {
                     Clipboard.SetText(path);
                     AppendToTerminal($"📋 {path}", Color.LightBlue);
                 }
             });
-            treeView.ContextMenuStrip = treeMenu;
+            listView.ContextMenuStrip = listMenu;
 
-            tab.Controls.Add(treeView);
+            tab.Controls.Add(listView);
+        }
+
+        private int listViewSortColumn = 0;
+        private SortOrder listViewSortOrder = SortOrder.Ascending;
+
+        private void ListView_ColumnClick(object? sender, ColumnClickEventArgs e)
+        {
+            var listView = sender as ListView;
+            if (listView == null) return;
+
+            if (e.Column == listViewSortColumn)
+            {
+                listViewSortOrder = listViewSortOrder == SortOrder.Ascending ? SortOrder.Descending : SortOrder.Ascending;
+            }
+            else
+            {
+                listViewSortColumn = e.Column;
+                listViewSortOrder = SortOrder.Ascending;
+            }
+
+            listView.ListViewItemSorter = new ListViewItemComparer(e.Column, listViewSortOrder);
+            listView.Sort();
         }
 
         private void SetupPromptsTab(TabPage tab)
@@ -868,8 +972,13 @@ namespace MiniSolidworkAutomator
         {
             if (currentFile != null)
             {
-                // Only mark as unsaved, delay content sync until save/run for performance
-                currentFile.IsUnsaved = true;
+                // Check if content actually changed from original
+                var editor = sender as RichTextBox;
+                if (editor != null)
+                {
+                    string originalContent = currentFile.Tag as string ?? currentFile.Content;
+                    currentFile.IsUnsaved = editor.Text != originalContent;
+                }
             }
             highlightTimer?.Stop();
             highlightTimer?.Start();
@@ -893,7 +1002,9 @@ namespace MiniSolidworkAutomator
             {
                 using var dialog = new SaveFileDialog
                 {
-                    Filter = currentFile.Type == MacroType.CSharp ? "C# Files (*.cs)|*.cs" : "VBA Files (*.vba;*.bas)|*.vba;*.bas",
+                    Filter = currentFile.Type == MacroType.CSharp 
+                        ? "C# Files (*.cs)|*.cs|Text Files (*.txt)|*.txt|JSON Files (*.json)|*.json|All Files (*.*)|*.*" 
+                        : "VBA Files (*.bas)|*.bas|VBA Files (*.vba)|*.vba|Text Files (*.txt)|*.txt|All Files (*.*)|*.*",
                     FileName = currentFile.Name,
                     InitialDirectory = Path.Combine(AppSettings.DefaultMacrosPath, currentFile.Type == MacroType.CSharp ? "C Sharp" : "VBA")
                 };
@@ -1583,8 +1694,83 @@ namespace MiniSolidworkAutomator
 
         private (string module, string procedure)? ShowVBASubSelection(string macroPath)
         {
-            // First detect actual SUB procedures in the file
-            var detectedSubs = DetectSubProceduresInSwp(macroPath);
+            // Try to get methods using SolidWorks API first
+            List<string> detectedSubs = new List<string>();
+            string suggestedModule = "Module1";
+            string suggestedProcedure = "main";
+            
+            // Check for companion BAS file
+            var basPath = Path.ChangeExtension(macroPath, ".bas");
+            if (File.Exists(basPath))
+            {
+                try
+                {
+                    string basContent = File.ReadAllText(basPath);
+                    var moduleInfo = ParseBasModuleInfo(basContent);
+                    
+                    if (!string.IsNullOrEmpty(moduleInfo.ModuleName))
+                        suggestedModule = moduleInfo.ModuleName;
+                    
+                    if (!string.IsNullOrEmpty(moduleInfo.EntryPoint))
+                        suggestedProcedure = moduleInfo.EntryPoint;
+                    
+                    detectedSubs = moduleInfo.Methods;
+                    
+                    AppendToTerminal($"📄 從 BAS 文件解析: 模塊={suggestedModule}, 入口={suggestedProcedure}, 方法數={detectedSubs.Count}", Color.Cyan);
+                }
+                catch (Exception ex)
+                {
+                    AppendToTerminal($"⚠ BAS 解析失敗: {ex.Message}", Color.Orange);
+                }
+            }
+            
+            // Try SolidWorks GetMacroMethods if no BAS file or parsing failed
+            if (detectedSubs.Count == 0 && swConnectionManager.SwApp != null)
+            {
+                try
+                {
+                    var methods = swConnectionManager.SwApp.GetMacroMethods(macroPath, 2) as object[];
+                    if (methods != null && methods.Length > 0)
+                    {
+                        AppendToTerminal($"🔍 使用 SolidWorks API 獲取方法: {methods.Length} 個", Color.Cyan);
+                        foreach (var method in methods)
+                        {
+                            if (method is object[] methodInfo && methodInfo.Length >= 2)
+                            {
+                                string moduleName = methodInfo[0]?.ToString() ?? "";
+                                string procedureName = methodInfo[1]?.ToString() ?? "";
+                                
+                                if (!string.IsNullOrEmpty(procedureName) && !detectedSubs.Contains(procedureName))
+                                {
+                                    detectedSubs.Add(procedureName);
+                                    
+                                    // Use first module as suggestion
+                                    if (!string.IsNullOrEmpty(moduleName) && suggestedModule == "Module1")
+                                        suggestedModule = moduleName;
+                                    
+                                    // Check for entry point
+                                    if (procedureName.Equals("AutoMain", StringComparison.OrdinalIgnoreCase))
+                                        suggestedProcedure = "AutoMain";
+                                    else if (suggestedProcedure == "main" && 
+                                            (procedureName.Equals("main", StringComparison.OrdinalIgnoreCase) ||
+                                             procedureName.Equals("Main", StringComparison.OrdinalIgnoreCase)))
+                                        suggestedProcedure = procedureName;
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    AppendToTerminal($"⚠ GetMacroMethods 失敗: {ex.Message}", Color.Orange);
+                }
+            }
+            
+            // Fallback to SWP scanning if still no methods found
+            if (detectedSubs.Count == 0)
+            {
+                detectedSubs = DetectSubProceduresInSwp(macroPath);
+            }
             
             using var dialog = new Form
             {
@@ -1631,8 +1817,8 @@ namespace MiniSolidworkAutomator
                 DropDownStyle = ComboBoxStyle.DropDown // Allow free text input
             };
             // Common module names
-            cmbModule.Items.AddRange(new[] { "Module1", "main", "Main", "ThisDocument", "Sheet1", "macro", "Macro" });
-            cmbModule.Text = "Module1";
+            cmbModule.Items.AddRange(new[] { suggestedModule, "Module1", "main", "Main", "ThisDocument", "Sheet1", "macro", "Macro" });
+            cmbModule.Text = suggestedModule;
 
             var lblProcedure = new Label
             {
@@ -1658,11 +1844,24 @@ namespace MiniSolidworkAutomator
                 {
                     cmbProcedure.Items.Add($"{sub} (已檢測)");
                 }
-                cmbProcedure.Text = $"{detectedSubs[0]} (已檢測)";
+                // Use suggested procedure from BAS or detection
+                bool foundSuggestion = false;
+                foreach (var item in cmbProcedure.Items)
+                {
+                    string? itemText = item?.ToString();
+                    if (itemText != null && itemText.StartsWith(suggestedProcedure + " "))
+                    {
+                        cmbProcedure.Text = itemText;
+                        foundSuggestion = true;
+                        break;
+                    }
+                }
+                if (!foundSuggestion)
+                    cmbProcedure.Text = $"{detectedSubs[0]} (已檢測)";
             }
             else
             {
-                cmbProcedure.Text = "main";
+                cmbProcedure.Text = suggestedProcedure;
             }
             
             // Add recent entry points
@@ -1934,11 +2133,104 @@ namespace MiniSolidworkAutomator
                 
                 AppendToTerminal($"📝 {Lang.Get("RunningVBA")}: {Path.GetFileName(pathRunning)}", Color.LightBlue);
                 
-                // Show SUB selection dialog for non-temp files
+                // Smart entry point detection
                 string moduleName = "Module1";
                 string procedureName = "main";
                 bool tryMultiple = true;
+                bool autoDetected = false;
                 
+                if (!isTemp)
+                {
+                    // First, try to auto-detect entry point from companion BAS file
+                    var basPath = Path.ChangeExtension(pathRunning, ".bas");
+                    if (File.Exists(basPath))
+                    {
+                        try
+                        {
+                            string basContent = File.ReadAllText(basPath);
+                            var moduleInfo = ParseBasModuleInfo(basContent);
+                            
+                            if (!string.IsNullOrEmpty(moduleInfo.ModuleName) && !string.IsNullOrEmpty(moduleInfo.EntryPoint))
+                            {
+                                moduleName = moduleInfo.ModuleName;
+                                procedureName = moduleInfo.EntryPoint;
+                                autoDetected = true;
+                                AppendToTerminal($"✅ 從 BAS 自動偵測入口點: {moduleName}.{procedureName}", Color.LightGreen);
+                            }
+                        }
+                        catch { /* Ignore parsing errors */ }
+                    }
+                    
+                    // Try GetMacroMethods API if no BAS detected
+                    if (!autoDetected && swConnectionManager.SwApp != null)
+                    {
+                        try
+                        {
+                            var methods = swConnectionManager.SwApp.GetMacroMethods(pathRunning, 2) as object[];
+                            if (methods != null && methods.Length > 0)
+                            {
+                                foreach (var method in methods)
+                                {
+                                    if (method is object[] methodInfo && methodInfo.Length >= 2)
+                                    {
+                                        string mod = methodInfo[0]?.ToString() ?? "";
+                                        string proc = methodInfo[1]?.ToString() ?? "";
+                                        
+                                        // Prioritize AutoMain, then main/Main
+                                        if (proc.Equals("AutoMain", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            moduleName = mod;
+                                            procedureName = "AutoMain";
+                                            autoDetected = true;
+                                            break;
+                                        }
+                                        else if (!autoDetected && (proc.Equals("main", StringComparison.OrdinalIgnoreCase)))
+                                        {
+                                            moduleName = mod;
+                                            procedureName = proc;
+                                            autoDetected = true;
+                                        }
+                                    }
+                                }
+                                if (autoDetected)
+                                {
+                                    AppendToTerminal($"✅ 從 API 自動偵測入口點: {moduleName}.{procedureName}", Color.LightGreen);
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            AppendToTerminal($"⚠ GetMacroMethods: {ex.Message}", Color.Orange);
+                        }
+                    }
+                }
+                
+                int errors = 0;
+                bool result = false;
+                
+                // Try auto-detected entry point first
+                if (autoDetected && swConnectionManager.SwApp != null)
+                {
+                    AppendToTerminal($"🎯 嘗試自動偵測入口點: {moduleName}.{procedureName}", Color.Cyan);
+                    result = swConnectionManager.SwApp.RunMacro2(pathRunning, moduleName, procedureName, (int)swRunMacroOption_e.swRunMacroUnloadAfterRun, out errors);
+                    
+                    if (result)
+                    {
+                        success = true;
+                        AppendToTerminal($"✅ {Lang.Get("VBASuccess")} ({moduleName}.{procedureName})", Color.LightGreen);
+                        
+                        // Record success and exit early
+                        settings.AddExecutionHistory(currentFile?.Name ?? Path.GetFileName(pathRunning), pathRunning, true, 0, "");
+                        settings.Save();
+                        return;
+                    }
+                    else
+                    {
+                        AppendToTerminal($"⚠ 自動入口點執行失敗 (錯誤碼: {errors})，顯示手動選擇...", Color.Orange);
+                    }
+                }
+                
+                // Show manual selection dialog if auto-detection failed or wasn't available
                 if (!isTemp)
                 {
                     var selection = ShowVBASubSelection(pathRunning);
@@ -1953,10 +2245,12 @@ namespace MiniSolidworkAutomator
                 
                 AppendToTerminal($"🎯 執行入口點: {moduleName}.{procedureName}", Color.Cyan);
                 
-                int errors = 0;
-                bool result = false;
-                
-                // First try with user-specified entry point
+                // Try with user-specified entry point
+                if (swConnectionManager.SwApp == null)
+                {
+                    AppendToTerminal("❌ SolidWorks 未連接", Color.Red);
+                    return;
+                }
                 result = swConnectionManager.SwApp.RunMacro2(pathRunning, moduleName, procedureName, (int)swRunMacroOption_e.swRunMacroUnloadAfterRun, out errors);
                 
                 // If failed and tryMultiple is enabled, try common combinations
@@ -2065,17 +2359,21 @@ namespace MiniSolidworkAutomator
         {
             var newFile = new MacroBookmark
             {
-                Name = $"{Lang.Get("NewScript")} {newFileCounter++}",
+                Name = $"{Lang.Get("NewScript")}{newFileCounter++}",
                 Content = GetDefaultCode(),
                 Type = MacroType.CSharp,
-                IsUnsaved = true
+                IsUnsaved = false  // New empty script is not considered unsaved until modified
             };
+            newFile.Tag = newFile.Content;  // Store original content to track changes
             openFiles.Add(newFile);
             AddTabForFile(newFile);
         }
 
         private void AddTabForFile(MacroBookmark file, bool? forceBinary = null)
         {
+            // Hide empty panel when adding a tab
+            HideEmptyPanel();
+            
             var tabPage = new TabPage(TruncateTabText(file.Name))
             {
                 BackColor = DarkBackground,
@@ -2162,14 +2460,14 @@ namespace MiniSolidworkAutomator
         private void CloseTabAt(int tabIndex)
         {
             if (tabIndex < 0 || tabIndex >= codeTabs.TabPages.Count) return;
-            if (codeTabs.TabPages.Count <= 1) return; // Keep at least one tab
 
             var tabPage = codeTabs.TabPages[tabIndex];
             var file = openFiles.FirstOrDefault(f => f.Id == tabPage.Tag?.ToString());
             
             if (file != null)
             {
-                if (file.IsUnsaved)
+                // Only ask for save if file has real unsaved changes
+                if (file.IsUnsaved && HasRealChanges(file))
                 {
                     var result = MessageBox.Show($"'{file.Name}' {Lang.Get("UnsavedConfirm")}", Lang.Get("Confirm"), MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                     if (result != DialogResult.Yes) return;
@@ -2178,6 +2476,13 @@ namespace MiniSolidworkAutomator
             }
 
             codeTabs.TabPages.RemoveAt(tabIndex);
+            
+            // Show empty panel if no tabs left
+            if (codeTabs.TabPages.Count == 0)
+            {
+                ShowEmptyPanel();
+                currentFile = null;
+            }
         }
 
         private void CloseOtherTabs()
@@ -2206,7 +2511,7 @@ namespace MiniSolidworkAutomator
             for (int i = codeTabs.TabPages.Count - 1; i >= 0; i--)
             {
                 var file = openFiles.FirstOrDefault(f => f.Id == codeTabs.TabPages[i].Tag?.ToString());
-                if (file != null && file.IsUnsaved)
+                if (file != null && file.IsUnsaved && HasRealChanges(file))
                 {
                     var result = MessageBox.Show($"'{file.Name}' {Lang.Get("UnsavedConfirm")}", Lang.Get("Confirm"), MessageBoxButtons.YesNo);
                     if (result != DialogResult.Yes) continue;
@@ -2214,7 +2519,11 @@ namespace MiniSolidworkAutomator
                 if (file != null) openFiles.Remove(file);
                 codeTabs.TabPages.RemoveAt(i);
             }
-            if (codeTabs.TabPages.Count == 0) CreateNewFile();
+            if (codeTabs.TabPages.Count == 0)
+            {
+                ShowEmptyPanel();
+                currentFile = null;
+            }
         }
 
         private void RenameCurrentTab()
@@ -2261,7 +2570,9 @@ namespace MiniSolidworkAutomator
             
             using var dialog = new SaveFileDialog
             {
-                Filter = currentFile.Type == MacroType.CSharp ? "C# Files (*.cs)|*.cs" : "VBA Files (*.vba;*.bas)|*.vba;*.bas",
+                Filter = currentFile.Type == MacroType.CSharp 
+                    ? "C# Files (*.cs)|*.cs|Text Files (*.txt)|*.txt|JSON Files (*.json)|*.json|All Files (*.*)|*.*" 
+                    : "VBA Files (*.bas)|*.bas|VBA Files (*.vba)|*.vba|Text Files (*.txt)|*.txt|All Files (*.*)|*.*",
                 FileName = currentFile.Name,
                 InitialDirectory = Path.Combine(AppSettings.DefaultMacrosPath, currentFile.Type == MacroType.CSharp ? "C Sharp" : "VBA")
             };
@@ -2299,7 +2610,22 @@ namespace MiniSolidworkAutomator
             if (File.Exists(basPath))
             {
                 isBinary = false;
-                return $"' === 來源: {Path.GetFileName(basPath)} ===\n' (SWP 檔案的原始碼版本)\n\n" + File.ReadAllText(basPath);
+                string basContent = File.ReadAllText(basPath);
+                
+                // Extract module info for display
+                var moduleInfo = ParseBasModuleInfo(basContent);
+                string infoHeader = "' === 來源: " + Path.GetFileName(basPath) + " ===\n";
+                if (!string.IsNullOrEmpty(moduleInfo.ModuleName))
+                {
+                    infoHeader += $"' 模塊名稱: {moduleInfo.ModuleName}\n";
+                }
+                if (!string.IsNullOrEmpty(moduleInfo.EntryPoint))
+                {
+                    infoHeader += $"' 入口點: {moduleInfo.EntryPoint}\n";
+                }
+                infoHeader += "' (SWP 檔案的原始碼版本)\n\n";
+                
+                return infoHeader + basContent;
             }
 
             // Check for companion .vba file
@@ -2312,6 +2638,71 @@ namespace MiniSolidworkAutomator
 
             // For SWP files without source, show info but mark as executable
             return $"====== SWP EXECUTABLE FILE ======\n\n檔案: {Path.GetFileName(swpPath)}\n\n這是一個已編譯的 SolidWorks 宏文件 (.swp)\n可以直接執行，但無法查看或編輯源代碼。\n\n若要查看源代碼：\n• 將同名的 .bas 或 .vba 文件放在同一資料夾\n• 或者從 SolidWorks 重新匯出為 .bas 格式\n\n▶ 點擊 'Run' 按鈕即可執行此宏\n\n==================================";
+        }
+        
+        private (string ModuleName, string EntryPoint, List<string> Methods) ParseBasModuleInfo(string basContent)
+        {
+            string moduleName = "";
+            string entryPoint = "";
+            var methods = new List<string>();
+            
+            var lines = basContent.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            
+            foreach (var line in lines)
+            {
+                var trimmed = line.Trim();
+                
+                // Extract module name from: Attribute VB_Name = "Module01_create_a_new_part"
+                if (trimmed.StartsWith("Attribute VB_Name", StringComparison.OrdinalIgnoreCase))
+                {
+                    var parts = trimmed.Split('=');
+                    if (parts.Length >= 2)
+                    {
+                        moduleName = parts[1].Trim().Trim('"', ' ');
+                    }
+                }
+                
+                // Find Sub or Function declarations
+                if (trimmed.StartsWith("Sub ", StringComparison.OrdinalIgnoreCase) ||
+                    trimmed.StartsWith("Public Sub ", StringComparison.OrdinalIgnoreCase) ||
+                    trimmed.StartsWith("Private Sub ", StringComparison.OrdinalIgnoreCase) ||
+                    trimmed.StartsWith("Function ", StringComparison.OrdinalIgnoreCase) ||
+                    trimmed.StartsWith("Public Function ", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Extract method name
+                    var methodLine = trimmed.Replace("Public ", "").Replace("Private ", "");
+                    int parenIndex = methodLine.IndexOf('(');
+                    if (parenIndex > 0)
+                    {
+                        var nameWithType = methodLine.Substring(0, parenIndex).Trim();
+                        var nameParts = nameWithType.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                        if (nameParts.Length >= 2)
+                        {
+                            string methodName = nameParts[1];
+                            if (!methods.Contains(methodName))
+                            {
+                                methods.Add(methodName);
+                                
+                                // Check for entry points
+                                if (string.IsNullOrEmpty(entryPoint))
+                                {
+                                    if (methodName.Equals("AutoMain", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        entryPoint = "AutoMain";
+                                    }
+                                    else if (methodName.Equals("main", StringComparison.OrdinalIgnoreCase) ||
+                                             methodName.Equals("Main", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        entryPoint = methodName;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return (moduleName, entryPoint, methods);
         }
 
         private void CodeTabs_MouseMove(object? sender, MouseEventArgs e)
@@ -2332,7 +2723,37 @@ namespace MiniSolidworkAutomator
             }
         }
 
-        private string GetDefaultCode() => $@"// SolidWorks C# 宏腳本
+        private string GetDefaultCode()
+        {
+            bool isEnglish = Lang.CurrentLanguage == "en-US";
+            if (isEnglish)
+            {
+                return $@"// SolidWorks C# Macro Script
+// Available variables: swApp (ISldWorks), swModel (IModelDoc2)
+// Available functions: Print(), PrintError(), PrintWarning()
+
+if (swApp != null)
+{{
+    Print($""SolidWorks Version: {{swApp.RevisionNumber()}}"");
+    
+    if (swModel != null)
+    {{
+        Print($""Active Document: {{swModel.GetTitle()}}"");
+    }}
+    else
+    {{
+        PrintWarning(""{Lang.Get("NoDocOpen")}"");
+    }}
+}}
+else
+{{
+    PrintError(""{Lang.Get("SWNotConnected")}"");
+}}
+";
+            }
+            else
+            {
+                return $@"// SolidWorks C# 宏腳本
 // 可用變量: swApp (ISldWorks), swModel (IModelDoc2)
 // 可用函數: Print(), PrintError(), PrintWarning()
 
@@ -2354,6 +2775,8 @@ else
     PrintError(""{Lang.Get("SWNotConnected")}"");
 }}
 ";
+            }
+        }
 
         private void ApplySyntaxHighlighting()
         {
@@ -2372,62 +2795,42 @@ else
 
         private void RefreshMacroLists()
         {
-            RefreshTree("csharpTree", macroManager.GetCSharpMacros(true));
-            RefreshTree("vbaTree", macroManager.GetVBAMacros(true));
+            RefreshMacroList("csharpList", macroManager.GetCSharpMacros(true));
+            RefreshMacroList("vbaList", macroManager.GetVBAMacros(true));
         }
 
-        private void RefreshTree(string name, List<MacroFileInfo> macros)
+        private void RefreshMacroList(string name, List<MacroFileInfo> macros)
         {
-            var tree = FindControl<TreeView>(name);
-            if (tree == null) return;
-            tree.Nodes.Clear();
-
-            // Group by folder path
-            var folderDict = new Dictionary<string, TreeNode>();
+            var listView = FindControl<ListView>(name);
+            if (listView == null) return;
+            listView.Items.Clear();
 
             foreach (var m in macros)
             {
-                var parts = m.RelativePath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-                TreeNode? parentNode = null;
-                string currentPath = "";
-
-                // Build folder structure
-                for (int i = 0; i < parts.Length - 1; i++)
+                try
                 {
-                    currentPath = string.IsNullOrEmpty(currentPath) ? parts[i] : $"{currentPath}/{parts[i]}";
-                    if (!folderDict.ContainsKey(currentPath))
+                    var fileInfo = new FileInfo(m.FullPath);
+                    string ext = Path.GetExtension(m.FullPath).ToUpper();
+                    string icon = ext == ".CS" ? "📄" : ext == ".SWP" ? "⚙" : "📝";
+                    
+                    var item = new ListViewItem($"{icon} {m.Name}")
                     {
-                        var folderNode = new TreeNode($"📁 {parts[i]}")
-                        {
-                            ForeColor = Color.FromArgb(255, 213, 79),  // Yellow folder
-                            NodeFont = new Font("Segoe UI", 9, FontStyle.Bold)
-                        };
-                        if (parentNode == null)
-                            tree.Nodes.Add(folderNode);
-                        else
-                            parentNode.Nodes.Add(folderNode);
-                        folderDict[currentPath] = folderNode;
-                    }
-                    parentNode = folderDict[currentPath];
+                        Tag = m.FullPath,
+                        ForeColor = ext == ".SWP" ? Color.FromArgb(150, 150, 150) : TextWhite,
+                        ToolTipText = m.FullPath
+                    };
+                    
+                    item.SubItems.Add(ext);
+                    item.SubItems.Add(fileInfo.Exists ? fileInfo.LastWriteTime.ToString("yyyy/MM/dd HH:mm") : "-");
+                    item.SubItems.Add(m.RelativePath);
+                    
+                    listView.Items.Add(item);
                 }
-
-                // Add file node
-                string icon = m.FullPath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase) ? "📄" :
-                              m.FullPath.EndsWith(".swp", StringComparison.OrdinalIgnoreCase) ? "⚙" : "📝";
-                var fileNode = new TreeNode($"{icon} {m.Name}")
+                catch
                 {
-                    Tag = m.FullPath,
-                    ForeColor = m.FullPath.EndsWith(".swp", StringComparison.OrdinalIgnoreCase) ? Color.FromArgb(150, 150, 150) : TextWhite,
-                    ToolTipText = m.FullPath
-                };
-
-                if (parentNode == null)
-                    tree.Nodes.Add(fileNode);
-                else
-                    parentNode.Nodes.Add(fileNode);
+                    // Skip files that can't be accessed
+                }
             }
-
-            tree.ExpandAll();
         }
 
         private void RefreshPromptsList()
@@ -2578,6 +2981,71 @@ else
             return null;
         }
 
+        private bool HasRealChanges(MacroBookmark file)
+        {
+            // For files without a path (new files), check if content differs from default template
+            if (string.IsNullOrEmpty(file.FilePath))
+            {
+                // Check against original content stored in Tag
+                if (file.Tag is string originalContent)
+                {
+                    // Get current content from editor
+                    var tab = codeTabs.TabPages.Cast<TabPage>().FirstOrDefault(t => t.Tag?.ToString() == file.Id);
+                    if (tab != null)
+                    {
+                        var editor = tab.Controls.OfType<RichTextBox>().FirstOrDefault();
+                        if (editor != null)
+                        {
+                            return editor.Text != originalContent;
+                        }
+                    }
+                }
+                return false;
+            }
+            return true; // Files with paths always have real changes if marked unsaved
+        }
+
+        private Panel? emptyPanel = null;
+        
+        private void ShowEmptyPanel()
+        {
+            if (emptyPanel == null)
+            {
+                emptyPanel = new Panel
+                {
+                    Dock = DockStyle.Fill,
+                    BackColor = DarkBackground,
+                    Name = "emptyPanel"
+                };
+                
+                var label = new Label
+                {
+                    Text = Lang.Get("NoScriptLoaded"),
+                    ForeColor = TextGray,
+                    Font = new Font("Segoe UI", 12),
+                    TextAlign = ContentAlignment.MiddleCenter,
+                    Dock = DockStyle.Fill,
+                    AutoSize = false
+                };
+                
+                emptyPanel.Controls.Add(label);
+            }
+            
+            if (!codePanel.Controls.Contains(emptyPanel))
+            {
+                codePanel.Controls.Add(emptyPanel);
+                emptyPanel.BringToFront();
+            }
+        }
+        
+        private void HideEmptyPanel()
+        {
+            if (emptyPanel != null && codePanel.Controls.Contains(emptyPanel))
+            {
+                codePanel.Controls.Remove(emptyPanel);
+            }
+        }
+
         private void AppendToTerminal(string text, Color? color = null)
         {
             if (InvokeRequired) { try { Invoke(new Action(() => AppendToTerminal(text, color))); } catch { } return; }
@@ -2593,7 +3061,7 @@ else
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            foreach (var file in openFiles.Where(f => f.IsUnsaved))
+            foreach (var file in openFiles.Where(f => f.IsUnsaved && HasRealChanges(f)))
             {
                 var result = MessageBox.Show($"'{file.Name}' {Lang.Get("UnsavedConfirm")}", Lang.Get("Confirm"), MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                 if (result == DialogResult.No) { e.Cancel = true; return; }
@@ -2758,7 +3226,7 @@ else
 
         private void ShowSearchDialog(bool replaceMode)
         {
-            if (searchDialog == null)
+            if (searchDialog == null || searchDialog.IsDisposed)
             {
                 searchDialog = new SearchReplaceDialog(replaceMode);
                 searchDialog.FindNext += SearchDialog_FindNext;
@@ -2782,8 +3250,9 @@ else
                 }
             }
 
-            searchDialog.Show();
+            searchDialog.Show(this);
             searchDialog.BringToFront();
+            searchDialog.Focus();
         }
 
         private void SearchDialog_FindNext(object? sender, SearchEventArgs e)

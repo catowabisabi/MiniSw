@@ -23,17 +23,28 @@ namespace MiniSolidworkAutomator.Localization
                 ["Save"] = "保存",
                 ["Settings"] = "設定",
                 ["Refresh"] = "刷新",
+                ["Search"] = "搜尋",
+                ["Shortcuts"] = "快捷鍵",
+                ["SwpToBas"] = "SWP→BAS",
                 
                 // Connection status
                 ["NotConnected"] = "未連接",
                 ["Connected"] = "已連接",
                 ["Connecting"] = "連接中...",
                 
+                // Tabs - Browser
+                ["RecentFiles"] = "最近",
+                ["Snippets"] = "代碼片段",
+                ["History"] = "歷史",
+                
                 // Tabs
                 ["CSharpMacros"] = "C# 宏",
                 ["VBAMacros"] = "VBA 宏",
                 ["Prompts"] = "提示模板",
                 ["Notes"] = "筆記",
+                
+                // Empty Panel
+                ["NoScriptLoaded"] = "沒有載入任何腳本\n\n點擊 [新建] 創建新腳本\n或雙擊右側文件列表打開腳本",
                 
                 // Editor
                 ["NewScript"] = "新腳本",
@@ -126,17 +137,28 @@ namespace MiniSolidworkAutomator.Localization
                 ["Save"] = "Save",
                 ["Settings"] = "Settings",
                 ["Refresh"] = "Refresh",
+                ["Search"] = "Search",
+                ["Shortcuts"] = "Shortcuts",
+                ["SwpToBas"] = "SWP→BAS",
                 
                 // Connection status
                 ["NotConnected"] = "Not Connected",
                 ["Connected"] = "Connected",
                 ["Connecting"] = "Connecting...",
                 
+                // Tabs - Browser
+                ["RecentFiles"] = "Recent",
+                ["Snippets"] = "Snippets",
+                ["History"] = "History",
+                
                 // Tabs
                 ["CSharpMacros"] = "C# Macros",
                 ["VBAMacros"] = "VBA Macros",
                 ["Prompts"] = "Prompts",
                 ["Notes"] = "Notes",
+                
+                // Empty Panel
+                ["NoScriptLoaded"] = "No script loaded\n\nClick [New] to create a new script\nor double-click a file from the list to open",
                 
                 // Editor
                 ["NewScript"] = "New Script",

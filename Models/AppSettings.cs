@@ -14,6 +14,8 @@ namespace MiniSolidworkAutomator.Models
         public string Content { get; set; } = "";
         public MacroType Type { get; set; } = MacroType.CSharp;
         public bool IsUnsaved { get; set; } = false;
+        [System.Text.Json.Serialization.JsonIgnore]
+        public object? Tag { get; set; } = null;  // For storing original content to track changes
     }
 
     public enum MacroType

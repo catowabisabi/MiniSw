@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "dOgg9ZGYlfw=",
+  "dgSpecHash": "FNym5QXWbjo=",
   "success": true,
-  "projectFilePath": "C:\\Users\\Chris\\Desktop\\MiniSw\\MiniSolidworkAutomator.csproj",
+  "projectFilePath": "c:\\Users\\Chris\\Desktop\\MiniSw\\MiniSolidworkAutomator.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Chris\\.nuget\\packages\\microsoft.codeanalysis.analyzers\\3.3.4\\microsoft.codeanalysis.analyzers.3.3.4.nupkg.sha512",
     "C:\\Users\\Chris\\.nuget\\packages\\microsoft.codeanalysis.common\\4.8.0\\microsoft.codeanalysis.common.4.8.0.nupkg.sha512",

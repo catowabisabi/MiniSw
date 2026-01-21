@@ -26,6 +26,14 @@
     <FileVersion>1.0.0.0</FileVersion>
   </PropertyGroup>
 
+  <!-- Exclude macro folders from compilation -->
+  <ItemGroup>
+    <Compile Remove="publish\**" />
+    <Compile Remove="publish-final\**" />
+    <Compile Remove="publish-single\**" />
+    <Compile Remove="bin\**\My SW Macros\**" />
+  </ItemGroup>
+
   <ItemGroup>
     <Reference Include="SolidWorks.Interop.sldworks">
       <HintPath>solidwork-api\SolidWorks.Interop.sldworks.dll</HintPath>

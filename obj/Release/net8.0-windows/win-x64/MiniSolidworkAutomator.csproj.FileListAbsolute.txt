@@ -1600,3 +1600,4 @@ C:\Users\Chris\Desktop\MiniSw\obj\Release\net8.0-windows\win-x64\refint\MiniSoli
 C:\Users\Chris\Desktop\MiniSw\obj\Release\net8.0-windows\win-x64\MiniSolidworkAutomator.pdb
 C:\Users\Chris\Desktop\MiniSw\obj\Release\net8.0-windows\win-x64\MiniSolidworkAutomator.genruntimeconfig.cache
 C:\Users\Chris\Desktop\MiniSw\obj\Release\net8.0-windows\win-x64\ref\MiniSolidworkAutomator.dll
+c:\Users\Chris\Desktop\MiniSw\obj\Release\net8.0-windows\win-x64\MiniSolidworkAutomator.sourcelink.json
