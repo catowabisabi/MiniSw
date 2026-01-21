@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
+using MiniSolidworkAutomator.Localization;
 
 namespace MiniSolidworkAutomator.Controls
 {
@@ -83,13 +84,15 @@ namespace MiniSolidworkAutomator.Controls
 
             insertButton = new Button
             {
-                Text = "📥 插入代碼 / Insert",
+                Text = Lang.CurrentLanguage == "en-US" ? "📥 Insert Code" : "📥 插入代碼",
                 Dock = DockStyle.Bottom,
                 Height = 32,
                 FlatStyle = FlatStyle.Flat,
-                BackColor = AccentBlue,
+                BackColor = Color.FromArgb(25, 80, 140), // Deep blue
                 ForeColor = TextWhite
             };
+            insertButton.FlatAppearance.BorderColor = Color.FromArgb(100, 100, 100); // Gray border
+            insertButton.FlatAppearance.BorderSize = 1;
             insertButton.Click += (s, e) => InsertCurrentSnippet();
 
             previewPanel.Controls.Add(previewBox);

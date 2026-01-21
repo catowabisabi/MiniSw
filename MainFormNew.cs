@@ -18,8 +18,441 @@ using MiniSolidworkAutomator.Services;
 using MiniSolidworkAutomator.Localization;
 using System.Collections;
 
+using System.Text.Json;
+
 namespace MiniSolidworkAutomator
 {
+    // Theme configuration loaded from theme.json
+    public static class ThemeManager
+    {
+        public static Color DarkBackground { get; private set; } = Color.FromArgb(30, 30, 30);
+        public static Color DarkPanel { get; private set; } = Color.FromArgb(45, 45, 45);
+        public static Color DarkToolbar { get; private set; } = Color.FromArgb(38, 50, 56);
+        public static Color DarkSplitter { get; private set; } = Color.FromArgb(55, 71, 79);
+        public static Color DarkTerminal { get; private set; } = Color.FromArgb(30, 30, 30);
+        public static Color DarkBorder { get; private set; } = Color.FromArgb(85, 85, 85);
+        public static Color TextWhite { get; private set; } = Color.White;
+        public static Color TextGray { get; private set; } = Color.FromArgb(180, 180, 180);
+        public static Color AccentGreen { get; private set; } = Color.FromArgb(46, 125, 50);
+        public static Color AccentRed { get; private set; } = Color.FromArgb(183, 28, 28);
+        public static Color AccentBlue { get; private set; } = Color.FromArgb(33, 150, 243);
+        public static Color AccentPurple { get; private set; } = Color.FromArgb(142, 68, 173);
+        public static Color TabSelected { get; private set; } = Color.FromArgb(45, 45, 45);
+        public static Color TabUnselected { get; private set; } = Color.FromArgb(30, 30, 30);
+        public static Color TabBorder { get; private set; } = Color.FromArgb(85, 85, 85);
+        
+        public static string UIFont { get; private set; } = "Segoe UI";
+        public static string CodeFont { get; private set; } = "Consolas";
+        public static int CodeTabWidth { get; private set; } = 140;
+        public static int CodeTabHeight { get; private set; } = 26;
+        public static int BrowserTabWidth { get; private set; } = 80;
+        public static int BrowserTabHeight { get; private set; } = 24;
+
+        public static void Load()
+        {
+            try
+            {
+                var themeFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "theme.json");
+                if (File.Exists(themeFile))
+                {
+                    var json = File.ReadAllText(themeFile);
+                    using var doc = JsonDocument.Parse(json);
+                    var root = doc.RootElement;
+
+                    if (root.TryGetProperty("colors", out var colors))
+                    {
+                        DarkBackground = ParseColor(colors, "DarkBackground", DarkBackground);
+                        DarkPanel = ParseColor(colors, "DarkPanel", DarkPanel);
+                        DarkToolbar = ParseColor(colors, "DarkToolbar", DarkToolbar);
+                        DarkSplitter = ParseColor(colors, "DarkSplitter", DarkSplitter);
+                        DarkTerminal = ParseColor(colors, "DarkTerminal", DarkTerminal);
+                        DarkBorder = ParseColor(colors, "DarkBorder", DarkBorder);
+                        TextWhite = ParseColor(colors, "TextWhite", TextWhite);
+                        TextGray = ParseColor(colors, "TextGray", TextGray);
+                        AccentGreen = ParseColor(colors, "AccentGreen", AccentGreen);
+                        AccentRed = ParseColor(colors, "AccentRed", AccentRed);
+                        AccentBlue = ParseColor(colors, "AccentBlue", AccentBlue);
+                        AccentPurple = ParseColor(colors, "AccentPurple", AccentPurple);
+                        TabSelected = ParseColor(colors, "TabSelected", TabSelected);
+                        TabUnselected = ParseColor(colors, "TabUnselected", TabUnselected);
+                        TabBorder = ParseColor(colors, "TabBorder", TabBorder);
+                    }
+
+                    if (root.TryGetProperty("fonts", out var fonts))
+                    {
+                        if (fonts.TryGetProperty("UI", out var ui)) UIFont = ui.GetString() ?? UIFont;
+                        if (fonts.TryGetProperty("Code", out var code)) CodeFont = code.GetString() ?? CodeFont;
+                    }
+
+                    if (root.TryGetProperty("sizes", out var sizes))
+                    {
+                        if (sizes.TryGetProperty("CodeTabWidth", out var ctw)) CodeTabWidth = ctw.GetInt32();
+                        if (sizes.TryGetProperty("CodeTabHeight", out var cth)) CodeTabHeight = cth.GetInt32();
+                        if (sizes.TryGetProperty("BrowserTabWidth", out var btw)) BrowserTabWidth = btw.GetInt32();
+                        if (sizes.TryGetProperty("BrowserTabHeight", out var bth)) BrowserTabHeight = bth.GetInt32();
+                    }
+                }
+            }
+            catch { /* Use defaults if theme.json fails to load */ }
+        }
+
+        private static Color ParseColor(JsonElement element, string name, Color defaultColor)
+        {
+            if (element.TryGetProperty(name, out var value))
+            {
+                var hex = value.GetString();
+                if (!string.IsNullOrEmpty(hex) && hex.StartsWith("#"))
+                {
+                    try { return ColorTranslator.FromHtml(hex); }
+                    catch { }
+                }
+            }
+            return defaultColor;
+        }
+    }
+
+    // Custom dark theme TabControl that eliminates white borders
+    public class DarkTabControl : TabControl
+    {
+        // Windows Messages
+        private const int WM_PAINT = 0x000F;
+        private const int WM_ERASEBKGND = 0x0014;
+        private const int WM_PARENTNOTIFY = 0x0210;
+
+        // For scroll button painting
+        [System.Runtime.InteropServices.DllImport("uxtheme.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        private static extern int SetWindowTheme(IntPtr hwnd, string? pszSubAppName, string? pszSubIdList);
+
+        public DarkTabControl()
+        {
+            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | 
+                     ControlStyles.DoubleBuffer | ControlStyles.ResizeRedraw | 
+                     ControlStyles.OptimizedDoubleBuffer, true);
+            DrawMode = TabDrawMode.OwnerDrawFixed;
+            Padding = new Point(8, 3);
+        }
+
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            // Apply dark theme to scroll buttons
+            SetWindowTheme(Handle, "DarkMode_Explorer", null);
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            // Fill entire background with dark color including scroll button area
+            using (var brush = new SolidBrush(ThemeManager.TabUnselected))
+            {
+                e.Graphics.FillRectangle(brush, ClientRectangle);
+            }
+            
+            // Draw tab strip area (empty space after tabs)
+            DrawTabStrip(e.Graphics);
+            
+            // Draw each tab
+            for (int i = 0; i < TabCount; i++)
+            {
+                DrawTab(e.Graphics, i);
+            }
+
+            // Draw scroll buttons area
+            DrawScrollArea(e.Graphics);
+        }
+
+        protected virtual void DrawTabStrip(Graphics g)
+        {
+            // Calculate tab strip height
+            int tabHeight = ItemSize.Height + 4;
+            
+            // Fill the entire tab strip area with dark color
+            using (var brush = new SolidBrush(ThemeManager.TabUnselected))
+            {
+                g.FillRectangle(brush, 0, 0, Width, tabHeight);
+            }
+        }
+
+        protected virtual void DrawScrollArea(Graphics g)
+        {
+            // Paint over the scroll button area (right side where scroll buttons appear)
+            if (TabCount > 0)
+            {
+                try
+                {
+                    var lastTabRect = GetTabRect(TabCount - 1);
+                    // Fill area after the last tab to the right edge
+                    if (lastTabRect.Right < Width)
+                    {
+                        var scrollArea = new Rectangle(lastTabRect.Right, 0, Width - lastTabRect.Right, ItemSize.Height + 4);
+                        using (var brush = new SolidBrush(ThemeManager.TabUnselected))
+                        {
+                            g.FillRectangle(brush, scrollArea);
+                        }
+                    }
+                }
+                catch { /* Ignore if tabs are not visible */ }
+            }
+        }
+
+        protected virtual void DrawTab(Graphics g, int index)
+        {
+            var tabRect = GetTabRect(index);
+            var isSelected = SelectedIndex == index;
+            var bgColor = isSelected ? ThemeManager.TabSelected : ThemeManager.TabUnselected;
+            
+            using (var brush = new SolidBrush(bgColor))
+            {
+                g.FillRectangle(brush, tabRect);
+            }
+
+            // Draw border around tab
+            using (var pen = new Pen(ThemeManager.TabBorder, 1))
+            {
+                g.DrawRectangle(pen, tabRect.X, tabRect.Y, tabRect.Width - 1, tabRect.Height - 1);
+            }
+
+            var textColor = isSelected ? ThemeManager.TextWhite : Color.Gray;
+            using (var brush = new SolidBrush(textColor))
+            {
+                var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+                g.DrawString(TabPages[index].Text, Font, brush, tabRect, sf);
+            }
+        }
+
+        protected override void OnPaintBackground(PaintEventArgs pevent)
+        {
+            // Fill with dark color
+            using (var brush = new SolidBrush(ThemeManager.TabUnselected))
+            {
+                pevent.Graphics.FillRectangle(brush, pevent.ClipRectangle);
+            }
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            // Handle WM_ERASEBKGND to prevent flicker and paint dark background
+            if (m.Msg == WM_ERASEBKGND)
+            {
+                m.Result = (IntPtr)1;
+                return;
+            }
+            base.WndProc(ref m);
+        }
+
+        protected override void OnResize(EventArgs e)
+        {
+            base.OnResize(e);
+            Invalidate(); // Force repaint on resize
+        }
+    }
+
+    // Code tab control with close buttons and unsaved indicators
+    public class DarkCodeTabControl : DarkTabControl
+    {
+        public event EventHandler<int>? TabCloseRequested;
+        public Func<string, bool>? IsTabUnsaved { get; set; }
+
+        public DarkCodeTabControl()
+        {
+            // Use Normal size mode so tabs auto-adjust, not Fixed
+            SizeMode = TabSizeMode.Normal;
+            Multiline = false;
+            ShowToolTips = true;
+            // Add extra padding for close button (X)
+            Padding = new Point(15, 4);
+        }
+
+        protected override void DrawTab(Graphics g, int index)
+        {
+            var tabRect = GetTabRect(index);
+            var isSelected = SelectedIndex == index;
+            var bgColor = isSelected ? ThemeManager.TabSelected : ThemeManager.TabUnselected;
+            
+            using (var brush = new SolidBrush(bgColor))
+            {
+                g.FillRectangle(brush, tabRect);
+            }
+
+            // Draw border
+            using (var pen = new Pen(ThemeManager.TabBorder, 1))
+            {
+                g.DrawRectangle(pen, tabRect.X, tabRect.Y, tabRect.Width - 1, tabRect.Height - 1);
+            }
+
+            // Get display text with unsaved indicator
+            var tabPage = TabPages[index];
+            var tabId = tabPage.Tag?.ToString() ?? "";
+            var isUnsaved = IsTabUnsaved?.Invoke(tabId) ?? false;
+            var displayText = isUnsaved ? "● " + tabPage.Text : tabPage.Text;
+
+            var textColor = isSelected ? ThemeManager.TextWhite : Color.Gray;
+            using (var brush = new SolidBrush(textColor))
+            {
+                var textRect = new RectangleF(tabRect.X + 5, tabRect.Y + 3, tabRect.Width - 25, tabRect.Height - 4);
+                var sf = new StringFormat { LineAlignment = StringAlignment.Center, Trimming = StringTrimming.EllipsisCharacter };
+                g.DrawString(displayText, Font, brush, textRect, sf);
+            }
+
+            // Draw close button (X)
+            var closeRect = new Rectangle(tabRect.Right - 18, tabRect.Y + (tabRect.Height - 12) / 2, 12, 12);
+            using (var pen = new Pen(isSelected ? ThemeManager.TextWhite : Color.DimGray, 1.5f))
+            {
+                g.DrawLine(pen, closeRect.Left + 2, closeRect.Top + 2, closeRect.Right - 2, closeRect.Bottom - 2);
+                g.DrawLine(pen, closeRect.Right - 2, closeRect.Top + 2, closeRect.Left + 2, closeRect.Bottom - 2);
+            }
+        }
+
+        protected override void OnMouseDown(MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                for (int i = 0; i < TabCount; i++)
+                {
+                    var tabRect = GetTabRect(i);
+                    var closeRect = new Rectangle(tabRect.Right - 18, tabRect.Y + (tabRect.Height - 12) / 2, 12, 12);
+                    
+                    if (closeRect.Contains(e.Location))
+                    {
+                        TabCloseRequested?.Invoke(this, i);
+                        return;
+                    }
+                }
+            }
+            base.OnMouseDown(e);
+        }
+    }
+
+    // Dark themed RichTextBox with dark scrollbars (using uxtheme)
+    public class DarkRichTextBox : RichTextBox
+    {
+        [DllImport("uxtheme.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        private static extern int SetWindowTheme(IntPtr hwnd, string? pszSubAppName, string? pszSubIdList);
+        
+        public DarkRichTextBox()
+        {
+            BorderStyle = BorderStyle.None;
+            BackColor = ThemeManager.DarkBackground;
+            ForeColor = ThemeManager.TextWhite;
+        }
+
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            // Apply dark mode scrollbar theme
+            SetWindowTheme(Handle, "DarkMode_Explorer", null);
+        }
+    }
+
+    // Dark themed ListBox with dark scrollbars
+    public class DarkListBox : ListBox
+    {
+        [DllImport("uxtheme.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        private static extern int SetWindowTheme(IntPtr hwnd, string? pszSubAppName, string? pszSubIdList);
+
+        public DarkListBox()
+        {
+            BorderStyle = BorderStyle.None;
+            BackColor = ThemeManager.DarkPanel;
+            ForeColor = ThemeManager.TextWhite;
+            DrawMode = DrawMode.OwnerDrawFixed;
+            ItemHeight = 24;
+        }
+
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            // Apply dark mode scrollbar theme
+            SetWindowTheme(Handle, "DarkMode_Explorer", null);
+        }
+
+        protected override void OnDrawItem(DrawItemEventArgs e)
+        {
+            if (e.Index < 0) return;
+
+            var isSelected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
+            var bgColor = isSelected ? ThemeManager.AccentBlue : ThemeManager.DarkPanel;
+            
+            using (var brush = new SolidBrush(bgColor))
+            {
+                e.Graphics.FillRectangle(brush, e.Bounds);
+            }
+
+            var text = Items[e.Index]?.ToString() ?? "";
+            using (var brush = new SolidBrush(ThemeManager.TextWhite))
+            {
+                var rect = new Rectangle(e.Bounds.X + 5, e.Bounds.Y, e.Bounds.Width - 5, e.Bounds.Height);
+                var sf = new StringFormat { LineAlignment = StringAlignment.Center };
+                e.Graphics.DrawString(text, Font, brush, rect, sf);
+            }
+        }
+    }
+
+    // Dark themed ListView with dark scrollbars
+    public class DarkListView : ListView
+    {
+        [DllImport("uxtheme.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        private static extern int SetWindowTheme(IntPtr hwnd, string? pszSubAppName, string? pszSubIdList);
+
+        public DarkListView()
+        {
+            BorderStyle = BorderStyle.None;
+            BackColor = ThemeManager.DarkPanel;
+            ForeColor = ThemeManager.TextWhite;
+            FullRowSelect = true;
+            GridLines = false;
+            OwnerDraw = true;
+        }
+
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            // Apply dark mode scrollbar theme
+            SetWindowTheme(Handle, "DarkMode_Explorer", null);
+        }
+
+        protected override void OnDrawColumnHeader(DrawListViewColumnHeaderEventArgs e)
+        {
+            using (var brush = new SolidBrush(ThemeManager.DarkToolbar))
+            {
+                e.Graphics.FillRectangle(brush, e.Bounds);
+            }
+            using (var brush = new SolidBrush(ThemeManager.TextWhite))
+            {
+                var sf = new StringFormat { LineAlignment = StringAlignment.Center };
+                var rect = new Rectangle(e.Bounds.X + 5, e.Bounds.Y, e.Bounds.Width - 5, e.Bounds.Height);
+                e.Graphics.DrawString(e.Header?.Text ?? "", Font, brush, rect, sf);
+            }
+            // Draw border
+            using (var pen = new Pen(ThemeManager.DarkSplitter))
+            {
+                e.Graphics.DrawLine(pen, e.Bounds.Right - 1, e.Bounds.Top, e.Bounds.Right - 1, e.Bounds.Bottom);
+            }
+        }
+
+        protected override void OnDrawItem(DrawListViewItemEventArgs e)
+        {
+            e.DrawDefault = false;
+        }
+
+        protected override void OnDrawSubItem(DrawListViewSubItemEventArgs e)
+        {
+            var isSelected = e.Item?.Selected ?? false;
+            var bgColor = isSelected ? ThemeManager.AccentBlue : ThemeManager.DarkPanel;
+            
+            using (var brush = new SolidBrush(bgColor))
+            {
+                e.Graphics.FillRectangle(brush, e.Bounds);
+            }
+
+            using (var brush = new SolidBrush(ThemeManager.TextWhite))
+            {
+                var sf = new StringFormat { LineAlignment = StringAlignment.Center, Trimming = StringTrimming.EllipsisCharacter };
+                var rect = new Rectangle(e.Bounds.X + 5, e.Bounds.Y, e.Bounds.Width - 10, e.Bounds.Height);
+                e.Graphics.DrawString(e.SubItem?.Text ?? "", Font, brush, rect, sf);
+            }
+        }
+    }
+
     // ListView sorter for file lists
     public class ListViewItemComparer : IComparer
     {
@@ -71,18 +504,35 @@ namespace MiniSolidworkAutomator
         private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
         private const int DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 = 19;
 
-        // ============ Theme Colors (Dark Theme) ============
-        private static readonly Color DarkBackground = Color.FromArgb(30, 30, 30);
-        private static readonly Color DarkPanel = Color.FromArgb(45, 45, 45);
-        private static readonly Color DarkToolbar = Color.FromArgb(38, 50, 56);
-        private static readonly Color DarkSplitter = Color.FromArgb(55, 71, 79);
-        private static readonly Color DarkTerminal = Color.FromArgb(30, 30, 30);  // Match editor background
-        private static readonly Color TextWhite = Color.White;
-        private static readonly Color TextGray = Color.FromArgb(180, 180, 180);
-        private static readonly Color AccentGreen = Color.FromArgb(46, 125, 50);  // Darker green for Run button
-        private static readonly Color AccentRed = Color.FromArgb(183, 28, 28);    // Darker red for Stop button
-        private static readonly Color AccentBlue = Color.FromArgb(33, 150, 243);
-        private static readonly Color AccentPurple = Color.FromArgb(142, 68, 173);
+        // ============ UxTheme API for Dark Scrollbars ============
+        [DllImport("uxtheme.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        private static extern int SetWindowTheme(IntPtr hwnd, string? pszSubAppName, string? pszSubIdList);
+
+        // Apply dark scrollbars to a control
+        public static void ApplyDarkScrollBar(Control control)
+        {
+            if (control.IsHandleCreated)
+            {
+                SetWindowTheme(control.Handle, "DarkMode_Explorer", null);
+            }
+            control.HandleCreated += (s, e) =>
+            {
+                SetWindowTheme(control.Handle, "DarkMode_Explorer", null);
+            };
+        }
+
+        // ============ Theme Colors - Now loaded from ThemeManager ============
+        private static Color DarkBackground => ThemeManager.DarkBackground;
+        private static Color DarkPanel => ThemeManager.DarkPanel;
+        private static Color DarkToolbar => ThemeManager.DarkToolbar;
+        private static Color DarkSplitter => ThemeManager.DarkSplitter;
+        private static Color DarkTerminal => ThemeManager.DarkTerminal;
+        private static Color TextWhite => ThemeManager.TextWhite;
+        private static Color TextGray => ThemeManager.TextGray;
+        private static Color AccentGreen => ThemeManager.AccentGreen;
+        private static Color AccentRed => ThemeManager.AccentRed;
+        private static Color AccentBlue => ThemeManager.AccentBlue;
+        private static Color AccentPurple => ThemeManager.AccentPurple;
 
         // ============ UI Components ============
         // Main layout: Left (Code) | Right (Browser + Terminal)
@@ -128,6 +578,9 @@ namespace MiniSolidworkAutomator
 
         public MainFormNew()
         {
+            // Load theme first before any UI is created
+            ThemeManager.Load();
+            
             InitializeApp();
             InitializeComponent();
             SetupUI();
@@ -385,67 +838,26 @@ namespace MiniSolidworkAutomator
                 }
             }
 
-            // Tab control for code files - single row with fixed size
-            codeTabs = new TabControl
+            // Tab control for code files - using custom dark tab control
+            var darkCodeTabs = new DarkCodeTabControl
             {
                 Dock = DockStyle.Fill,
                 BackColor = DarkBackground,
                 Font = new Font("Segoe UI", 9),
-                DrawMode = TabDrawMode.OwnerDrawFixed,
-                Padding = new Point(12, 4),
-                SizeMode = TabSizeMode.Fixed,
-                ItemSize = new Size(160, 26),  // Fixed width prevents multi-row
-                Multiline = false,             // Force single line
-                ShowToolTips = true,           // Enable tooltips for full name
-                Appearance = TabAppearance.FlatButtons  // Remove 3D border
+                IsTabUnsaved = (tabId) => openFiles.FirstOrDefault(f => f.Id == tabId)?.IsUnsaved ?? false
             };
-            codeTabs.DrawItem += CodeTabs_DrawItem;
-            codeTabs.MouseDown += CodeTabs_MouseDown;
-            codeTabs.SelectedIndexChanged += CodeTabs_SelectedIndexChanged;
-            codeTabs.MouseMove += CodeTabs_MouseMove;  // For tooltip
-
+            darkCodeTabs.TabCloseRequested += (s, index) => CloseTabAt(index);
+            darkCodeTabs.MouseDown += CodeTabs_MouseDown;
+            darkCodeTabs.SelectedIndexChanged += CodeTabs_SelectedIndexChanged;
+            darkCodeTabs.MouseMove += CodeTabs_MouseMove;
+            
+            codeTabs = darkCodeTabs;
             codePanel.Controls.Add(codeTabs);
-        }
-
-        private void CodeTabs_DrawItem(object? sender, DrawItemEventArgs e)
-        {
-            if (e.Index < 0 || e.Index >= codeTabs.TabPages.Count) return;
-
-            var tabPage = codeTabs.TabPages[e.Index];
-            var tabRect = codeTabs.GetTabRect(e.Index);
-            
-            // Background & Selection
-            var isSelected = e.Index == codeTabs.SelectedIndex;
-            var bgColor = isSelected ? DarkPanel : DarkBackground;
-            
-            using (var brush = new SolidBrush(bgColor))
-            {
-                e.Graphics.FillRectangle(brush, tabRect);
-            }
-
-            // Text
-            var textColor = isSelected ? TextWhite : Color.Gray;
-            var file = openFiles.FirstOrDefault(f => f.Id == tabPage.Tag?.ToString());
-            var displayText = file != null && file.IsUnsaved ? "● " + tabPage.Text : tabPage.Text;
-            
-            using (var brush = new SolidBrush(textColor))
-            {
-                var textRect = new RectangleF(tabRect.X + 5, tabRect.Y + 5, tabRect.Width - 25, tabRect.Height);
-                var sf = new StringFormat { LineAlignment = StringAlignment.Center, Trimming = StringTrimming.EllipsisCharacter };
-                e.Graphics.DrawString(displayText, codeTabs.Font, brush, textRect, sf);
-            }
-
-            // Close button (X) - Always draw for clarity
-            var closeRect = new Rectangle(tabRect.Right - 18, tabRect.Y + 6, 12, 12);
-            using (var pen = new Pen(isSelected ? TextWhite : Color.DimGray, 2))
-            {
-                e.Graphics.DrawLine(pen, closeRect.Left, closeRect.Top, closeRect.Right, closeRect.Bottom);
-                e.Graphics.DrawLine(pen, closeRect.Right, closeRect.Top, closeRect.Left, closeRect.Bottom);
-            }
         }
 
         private void CodeTabs_MouseDown(object? sender, MouseEventArgs e)
         {
+            // Right-click for context menu only - close is handled by DarkCodeTabControl
             if (e.Button == MouseButtons.Right)
             {
                 for (int i = 0; i < codeTabs.TabPages.Count; i++)
@@ -454,20 +866,6 @@ namespace MiniSolidworkAutomator
                     {
                         codeTabs.SelectedIndex = i;
                         tabContextMenu?.Show(codeTabs, e.Location);
-                        return;
-                    }
-                }
-            }
-            else if (e.Button == MouseButtons.Left)
-            {
-                for (int i = 0; i < codeTabs.TabPages.Count; i++)
-                {
-                    var tabRect = codeTabs.GetTabRect(i);
-                    var closeRect = new Rectangle(tabRect.Right - 18, tabRect.Y + 6, 12, 12);
-                    
-                    if (closeRect.Contains(e.Location))
-                    {
-                        CloseTabAt(i);
                         return;
                     }
                 }
@@ -506,24 +904,23 @@ namespace MiniSolidworkAutomator
             rightSplit.Panel1.BackColor = DarkBackground;
             rightSplit.Panel2.BackColor = DarkBackground;
 
-            // Browser tabs (standard TabControl)
-            browserTabs = new TabControl
+            // Browser tabs (with custom drawing for dark theme)
+            browserTabs = new DarkTabControl
             {
-                Dock = DockStyle.Fill,
                 Font = new Font("Segoe UI", 9),
                 BackColor = DarkBackground,
-                ForeColor = TextWhite,
-                Appearance = TabAppearance.FlatButtons  // Remove 3D border
+                SizeMode = TabSizeMode.Fixed,
+                ItemSize = new Size(80, 24)
             };
 
             // Create tabs - use localized names
-            var recentTab = new TabPage($"📂 {Lang.Get("RecentFiles")}") { BackColor = DarkPanel, BorderStyle = BorderStyle.None };
-            var csharpTab = new TabPage(Lang.Get("CSharpMacros")) { BackColor = DarkPanel, BorderStyle = BorderStyle.None };
-            var vbaTab = new TabPage(Lang.Get("VBAMacros")) { BackColor = DarkPanel, BorderStyle = BorderStyle.None };
-            var snippetsTab = new TabPage($"📝 {Lang.Get("Snippets")}") { BackColor = DarkPanel, BorderStyle = BorderStyle.None };
-            var historyTab = new TabPage($"📊 {Lang.Get("History")}") { BackColor = DarkPanel, BorderStyle = BorderStyle.None };
-            var promptsTab = new TabPage(Lang.Get("Prompts")) { BackColor = DarkPanel, BorderStyle = BorderStyle.None };
-            var notesTab = new TabPage(Lang.Get("Notes")) { BackColor = DarkPanel, BorderStyle = BorderStyle.None };
+            var recentTab = new TabPage($"📂 {Lang.Get("RecentFiles")}") { BackColor = DarkPanel, UseVisualStyleBackColor = false };
+            var csharpTab = new TabPage(Lang.Get("CSharpMacros")) { BackColor = DarkPanel, UseVisualStyleBackColor = false };
+            var vbaTab = new TabPage(Lang.Get("VBAMacros")) { BackColor = DarkPanel, UseVisualStyleBackColor = false };
+            var snippetsTab = new TabPage($"📝 {Lang.Get("Snippets")}") { BackColor = DarkPanel, UseVisualStyleBackColor = false };
+            var historyTab = new TabPage($"📊 {Lang.Get("History")}") { BackColor = DarkPanel, UseVisualStyleBackColor = false };
+            var promptsTab = new TabPage(Lang.Get("Prompts")) { BackColor = DarkPanel, UseVisualStyleBackColor = false };
+            var notesTab = new TabPage(Lang.Get("Notes")) { BackColor = DarkPanel, UseVisualStyleBackColor = false };
 
             SetupRecentFilesTab(recentTab);
             SetupMacroListView(csharpTab, MacroType.CSharp);
@@ -535,10 +932,9 @@ namespace MiniSolidworkAutomator
 
             browserTabs.TabPages.AddRange(new[] { recentTab, csharpTab, vbaTab, snippetsTab, historyTab, promptsTab, notesTab });
 
-            var browserPanel = new Panel { Dock = DockStyle.Fill, BackColor = DarkBackground };
-            browserPanel.Controls.Add(browserTabs);
-
-            rightSplit.Panel1.Controls.Add(browserPanel);
+            // Add directly without container - DarkTabControl handles its own painting
+            browserTabs.Dock = DockStyle.Fill;
+            rightSplit.Panel1.Controls.Add(browserTabs);
 
             // Terminal
             SetupTerminal();
@@ -546,18 +942,13 @@ namespace MiniSolidworkAutomator
 
         private void SetupMacroListView(TabPage tab, MacroType type)
         {
-            // Use ListView for detailed file view with sorting
-            var listView = new ListView
+            // Use DarkListView for detailed file view with sorting and dark scrollbars
+            var listView = new DarkListView
             {
                 Dock = DockStyle.Fill,
-                BackColor = DarkPanel,
-                ForeColor = TextWhite,
-                BorderStyle = BorderStyle.None,
                 Font = new Font("Segoe UI", 9),
                 Name = type == MacroType.CSharp ? "csharpList" : "vbaList",
-                View = System.Windows.Forms.View.Details,
-                FullRowSelect = true,
-                GridLines = false
+                View = System.Windows.Forms.View.Details
             };
 
             // Add columns
@@ -639,12 +1030,9 @@ namespace MiniSolidworkAutomator
             split.Panel2.BackColor = DarkBackground;
 
             // List
-            var listBox = new ListBox
+            var listBox = new DarkListBox
             {
                 Dock = DockStyle.Fill,
-                BackColor = DarkPanel,
-                ForeColor = TextWhite,
-                BorderStyle = BorderStyle.None,
                 Font = new Font("Segoe UI", 9),
                 Name = "promptsList"
             };
@@ -675,7 +1063,7 @@ namespace MiniSolidworkAutomator
                 Height = 30,
                 BackColor = DarkPanel,
                 ForeColor = TextWhite,
-                BorderStyle = BorderStyle.FixedSingle,
+                BorderStyle = BorderStyle.None,
                 Font = new Font("Segoe UI", 11),
                 Name = "promptName"
             };
@@ -725,15 +1113,15 @@ namespace MiniSolidworkAutomator
                 Dock = DockStyle.Fill,
                 Orientation = Orientation.Vertical,
                 SplitterDistance = 180,
-                BackColor = DarkToolbar
+                BackColor = DarkSplitter,
+                BorderStyle = BorderStyle.None
             };
+            split.Panel1.BackColor = DarkPanel;
+            split.Panel2.BackColor = DarkBackground;
 
-            var listBox = new ListBox
+            var listBox = new DarkListBox
             {
                 Dock = DockStyle.Fill,
-                BackColor = DarkPanel,
-                ForeColor = TextWhite,
-                BorderStyle = BorderStyle.None,
                 Font = new Font("Segoe UI", 9),
                 Name = "notesList"
             };
@@ -813,6 +1201,8 @@ namespace MiniSolidworkAutomator
                 BackColor = DarkPanel,
                 ForeColor = TextWhite
             };
+            btnCopyTerminal.FlatAppearance.BorderColor = DarkSplitter;
+            btnCopyTerminal.FlatAppearance.BorderSize = 1;
             btnCopyTerminal.Click += (s, e) =>
             {
                 if (!string.IsNullOrEmpty(terminalDisplay.Text))
@@ -832,18 +1222,18 @@ namespace MiniSolidworkAutomator
                 BackColor = DarkPanel,
                 ForeColor = TextWhite
             };
+            clearBtn.FlatAppearance.BorderColor = DarkSplitter;
+            clearBtn.FlatAppearance.BorderSize = 1;
             clearBtn.Click += (s, e) => terminalDisplay.Clear();
 
             header.Controls.AddRange(new Control[] { label, btnCopyTerminal, clearBtn });
 
-            terminalDisplay = new RichTextBox
+            terminalDisplay = new DarkRichTextBox
             {
                 Dock = DockStyle.Fill,
                 ReadOnly = true,
                 Font = new Font("Cascadia Code", 10),
-                BackColor = DarkTerminal,
-                ForeColor = Color.FromArgb(204, 204, 204),
-                BorderStyle = BorderStyle.None
+                ForeColor = Color.FromArgb(204, 204, 204)
             };
 
             terminalPanel.Controls.Add(terminalDisplay);
@@ -2389,13 +2779,11 @@ namespace MiniSolidworkAutomator
 
             bool isBinary = forceBinary ?? (!string.IsNullOrEmpty(file.FilePath) && file.FilePath.EndsWith(".swp", StringComparison.OrdinalIgnoreCase));
 
-            var editor = new RichTextBox
+            var editor = new DarkRichTextBox
             {
                 Dock = DockStyle.Fill,
                 Font = new Font("Cascadia Code", 11),
-                BackColor = DarkBackground,
                 ForeColor = isBinary ? Color.Gray : Color.FromArgb(212, 212, 212),
-                BorderStyle = BorderStyle.None,
                 AcceptsTab = true,
                 WordWrap = false,
                 Text = file.Content,
@@ -3086,14 +3474,10 @@ else
 
         private void SetupRecentFilesTab(TabPage tab)
         {
-            var listView = new ListView
+            var listView = new DarkListView
             {
                 Dock = DockStyle.Fill,
                 View = System.Windows.Forms.View.Details,
-                FullRowSelect = true,
-                BackColor = DarkPanel,
-                ForeColor = TextWhite,
-                BorderStyle = BorderStyle.None,
                 Font = new Font("Segoe UI", 9),
                 Name = "recentFilesList"
             };
@@ -3161,14 +3545,10 @@ else
 
         private void SetupHistoryTab(TabPage tab)
         {
-            var listView = new ListView
+            var listView = new DarkListView
             {
                 Dock = DockStyle.Fill,
                 View = System.Windows.Forms.View.Details,
-                FullRowSelect = true,
-                BackColor = DarkPanel,
-                ForeColor = TextWhite,
-                BorderStyle = BorderStyle.None,
                 Font = new Font("Segoe UI", 9),
                 Name = "historyList"
             };
