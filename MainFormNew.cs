@@ -396,7 +396,8 @@ namespace MiniSolidworkAutomator
                 SizeMode = TabSizeMode.Fixed,
                 ItemSize = new Size(160, 26),  // Fixed width prevents multi-row
                 Multiline = false,             // Force single line
-                ShowToolTips = true            // Enable tooltips for full name
+                ShowToolTips = true,           // Enable tooltips for full name
+                Appearance = TabAppearance.FlatButtons  // Remove 3D border
             };
             codeTabs.DrawItem += CodeTabs_DrawItem;
             codeTabs.MouseDown += CodeTabs_MouseDown;
@@ -510,7 +511,9 @@ namespace MiniSolidworkAutomator
             {
                 Dock = DockStyle.Fill,
                 Font = new Font("Segoe UI", 9),
-                BackColor = DarkToolbar
+                BackColor = DarkBackground,
+                ForeColor = TextWhite,
+                Appearance = TabAppearance.FlatButtons  // Remove 3D border
             };
 
             // Create tabs - use localized names
@@ -629,14 +632,17 @@ namespace MiniSolidworkAutomator
                 Dock = DockStyle.Fill,
                 Orientation = Orientation.Vertical,
                 SplitterDistance = 180,
-                BackColor = DarkToolbar
+                BackColor = DarkSplitter,
+                BorderStyle = BorderStyle.None
             };
+            split.Panel1.BackColor = DarkPanel;
+            split.Panel2.BackColor = DarkBackground;
 
             // List
             var listBox = new ListBox
             {
                 Dock = DockStyle.Fill,
-                BackColor = DarkToolbar,
+                BackColor = DarkPanel,
                 ForeColor = TextWhite,
                 BorderStyle = BorderStyle.None,
                 Font = new Font("Segoe UI", 9),
@@ -725,7 +731,7 @@ namespace MiniSolidworkAutomator
             var listBox = new ListBox
             {
                 Dock = DockStyle.Fill,
-                BackColor = DarkToolbar,
+                BackColor = DarkPanel,
                 ForeColor = TextWhite,
                 BorderStyle = BorderStyle.None,
                 Font = new Font("Segoe UI", 9),
